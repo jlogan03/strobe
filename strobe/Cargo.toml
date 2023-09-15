@@ -1,0 +1,27 @@
+[package]
+name = "strobe"
+version = "0.1.0"
+edition = "2021"
+authors = ["James Logan <jlogan03@gmail.com>"]
+license = "MIT or Apache 2.0"
+repository = "https://github.com/jlogan03/strobe"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+num-traits = { version = "0.2.16", default-features = false, features=["libm"] }
+rand = { version="0.8.5", optional=true }  # Only used for tests and benchmarks
+
+[dev-dependencies]
+ndarray = "0.15.6"
+rand = "0.8.5"
+
+[features]
+default = ["std"]
+std = []
+_benchmarking = ["std", "rand"]
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = true
