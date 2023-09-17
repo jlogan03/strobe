@@ -3,7 +3,7 @@ name = "strobe"
 version = "0.1.0"
 edition = "2021"
 authors = ["James Logan <jlogan03@gmail.com>"]
-license = "MIT or Apache 2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/jlogan03/strobe"
 description = "Fast, low-memory, elementwise array expressions on the stack. Compatible with no-std (and no-alloc) environments."
 
