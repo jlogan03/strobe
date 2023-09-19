@@ -136,13 +136,37 @@ pub(crate) const N: usize = 64;
 pub mod expr;
 pub mod ops;
 
-pub use expr::{AccumulatorFn, BinaryFn, TernaryFn, UnaryFn};
+pub use expr::{AccumulatorFn, BinaryFn, Expr, TernaryFn, UnaryFn};
 
 pub use ops::{
     abs, accumulator, acos, acosh, add, array, asin, asinh, atan, atan2, atanh, binary, constant,
-    cos, cosh, div, exp, flog10, flog2, mul, mul_add, powf, sin, sinh, slice, sub, sum, tan, tanh,
-    ternary, unary,
+    cos, cosh, div, exp, flog10, flog2, iterator, mul, mul_add, powf, sin, sinh, slice, sub, sum,
+    tan, tanh, ternary, unary,
 };
+
+impl<'a, T: Elem, K> From<&'a mut K> for Expr<'a, T>
+where
+    K: Iterator<Item = &'a T>,
+{
+    fn from(value: &'a mut K) -> Self {
+        iterator(value)
+    }
+}
+
+impl<'a, T: Elem, K> From<&'a K> for Expr<'a, T>
+where
+    K: AsRef<[T]>,
+{
+    fn from(value: &'a K) -> Self {
+        array(value)
+    }
+}
+
+impl<'a, T: Elem> From<&'a [T]> for Expr<'a, T> {
+    fn from(value: &'a [T]) -> Self {
+        slice(value)
+    }
+}
 
 #[cfg(test)]
 mod test_std {
@@ -536,6 +560,58 @@ mod test {
     }
 
     #[test]
+    fn test_from_slice() {
+        // Simple case with one scalar-vector multiplication
+        let mut rng = rng_fixed_seed();
+        let y = &randn::<f64>(&mut rng, NT)[..];
+
+        let mut xn = constant(5.0);
+        let mut yn = y.into();
+
+        let mut xyn = mul(&mut xn, &mut yn);
+
+        let xy = xyn.eval();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(5.0 * y[i], xy[i]));
+    }
+
+    #[test]
+    fn test_from_vec() {
+        // Simple case with one scalar-vector multiplication
+        let mut rng = rng_fixed_seed();
+        let y = &randn::<f64>(&mut rng, NT);
+
+        let mut xn = constant(5.0);
+        let mut yn = y.into();
+
+        let mut xyn = mul(&mut xn, &mut yn);
+
+        let xy = xyn.eval();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(5.0 * y[i], xy[i]));
+    }
+
+    #[test]
+    fn test_from_iterator() {
+        // Simple case with one scalar-vector multiplication
+        let mut rng = rng_fixed_seed();
+        let y = randn::<f64>(&mut rng, NT);
+        let yi = &mut y.iter();
+
+        let mut xn = constant(5.0);
+        let mut yn = yi.into();
+
+        let mut xyn = mul(&mut xn, &mut yn);
+
+        let xy = xyn.eval();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(5.0 * y[i], xy[i]));
+    }
+
+    #[test]
     fn test_mul_scalar() {
         // Simple case with one scalar-vector multiplication
         let mut rng = rng_fixed_seed();
@@ -648,38 +724,67 @@ mod bench {
     const NB: usize = 10_000_000;
 
     #[bench]
-    fn bench_mul_tree(b: &mut Bencher) {
+    fn bench_mul_iterator(b: &mut Bencher) {
         // Simple case with one multiplication
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NB);
         let y = randn::<f64>(&mut rng, NB);
 
-        let mut xn = array(&x);
-        let mut yn = array(&y);
-        let mut xyn = mul(&mut xn, &mut yn);
+        b.iter(|| {
+            black_box({
+                let xi = &mut x.iter();
+                let yi = &mut y.iter();
 
-        b.iter(|| black_box(xyn.eval()));
+                let mut xn = xi.into();
+                let mut yn = yi.into();
+                let mut xyn = mul(&mut xn, &mut yn);
+
+                xyn.eval()
+            })
+        });
     }
 
     #[bench]
-    fn bench_mul_tree_2x(b: &mut Bencher) {
+    fn bench_mul(b: &mut Bencher) {
+        // Simple case with one multiplication
+        let mut rng = rng_fixed_seed();
+        let x = randn::<f64>(&mut rng, NB);
+        let y = randn::<f64>(&mut rng, NB);
+
+        b.iter(|| {
+            black_box({
+                let mut xn = array(&x);
+                let mut yn = array(&y);
+                let mut xyn = mul(&mut xn, &mut yn);
+
+                xyn.eval()
+            })
+        });
+    }
+
+    #[bench]
+    fn bench_mul_2x(b: &mut Bencher) {
         // Slightly nontrivial case with two multiplications
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NB);
         let y = randn::<f64>(&mut rng, NB);
         let z = randn::<f64>(&mut rng, NB);
 
-        let mut xn = array(&x);
-        let mut yn = array(&y);
-        let mut zn = array(&z);
-        let mut xyn = mul(&mut xn, &mut yn);
-        let mut xyzn = mul(&mut xyn, &mut zn);
+        b.iter(|| {
+            black_box({
+                let mut xn = array(&x);
+                let mut yn = array(&y);
+                let mut zn = array(&z);
+                let mut xyn = mul(&mut xn, &mut yn);
+                let mut xyzn = mul(&mut xyn, &mut zn);
 
-        b.iter(|| black_box(xyzn.eval()));
+                xyzn.eval()
+            })
+        });
     }
 
     #[bench]
-    fn bench_mul_tree_3x(b: &mut Bencher) {
+    fn bench_mul_3x(b: &mut Bencher) {
         // Slightly nontrivial case with two multiplications
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NB);
@@ -687,16 +792,18 @@ mod bench {
         let z = randn::<f64>(&mut rng, NB);
         let w = randn::<f64>(&mut rng, NB);
 
-        let xn = &mut array(&x);
-        let yn = &mut array(&y);
-        let zn = &mut array(&z);
-        let wn = &mut array(&w);
+        b.iter(|| {
+            black_box({
+                let xn = &mut array(&x);
+                let yn = &mut array(&y);
+                let zn = &mut array(&z);
+                let wn = &mut array(&w);
+                let xyn = &mut mul(xn, yn);
+                let zwn = &mut mul(zn, wn);
+                let xyzwn = &mut mul(xyn, zwn);
 
-        let xyn = &mut mul(xn, yn);
-        let zwn = &mut mul(zn, wn);
-
-        let xyzwn = &mut mul(xyn, zwn);
-
-        b.iter(|| black_box(xyzwn.eval()));
+                xyzwn.eval()
+            })
+        });
     }
 }

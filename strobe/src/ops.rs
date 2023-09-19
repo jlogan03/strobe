@@ -31,6 +31,27 @@ pub fn array<'a, T: Elem>(v: &'a Array<T>) -> Expr<'a, T> {
     Expr::new(T::zero(), Array { v: v.as_ref() }, v.as_ref().len())
 }
 
+/// Array identity operation via iterator.
+///
+/// This allows interoperation with non-contiguous array formats.
+/// Note this method is significantly slower than consuming an array or slice,
+/// even if the iterator is over a contiguous array or slice. Whenever possible,
+/// it is best to provide the contiguous data directly.
+///
+/// ## Panics
+/// * If the length of the iterator is not known exactly
+pub fn iterator<'a, T: Elem>(v: &'a mut dyn Iterator<Item = &'a T>) -> Expr<'a, T> {
+    use Op::Iterator;
+    // In order to use the iterator in a calculation that requires concrete
+    // size bounds, it must have an upper bound on size, and that upper bound
+    // must be equal to the lower bound
+    let n = match v.size_hint() {
+        (lower, Some(upper)) if lower == upper => lower,
+        _ => panic!(),
+    };
+    Expr::new(T::zero(), Iterator { v }, n)
+}
+
 /// Slice identity operation. This allows the use of a slice as an input.
 pub fn slice<T: Elem>(v: &[T]) -> Expr<'_, T> {
     use Op::Array;

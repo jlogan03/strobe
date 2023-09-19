@@ -45,6 +45,10 @@ impl<T: Elem> Storage<T> {
 pub(crate) enum Op<'a, T: Elem> {
     /// Array identity
     Array { v: &'a [T] },
+    /// Array identity via iterator, useful for interop with non-contiguous arrays
+    Iterator {
+        v: &'a mut dyn Iterator<Item = &'a T>,
+    },
     /// Scalar identity
     Scalar { acc: Option<Accumulator<'a, T>> },
     Unary {
@@ -90,6 +94,8 @@ impl<'a, T: Elem> Expr<'_, T> {
     ///
     /// # Panics
     /// * If the array length of the input expression does not match the length of the output.
+    /// * On any difference between actual and expected source data length (although the intent
+    ///   is to logically eliminate this)
     #[cfg(feature = "std")]
     pub fn eval(&mut self) -> Vec<T> {
         let mut out = vec![T::zero(); self.len()];
@@ -104,6 +110,8 @@ impl<'a, T: Elem> Expr<'_, T> {
     ///
     /// # Panics
     /// * If the array length of the input expression does not match the length of the output.
+    /// * On any difference between actual and expected source data length (although the intent
+    ///   is to logically eliminate this)
     pub fn eval_into(&mut self, out: &mut ArrayMut<'a, T>) {
         self.eval_into_slice(out.as_mut());
     }
@@ -115,22 +123,25 @@ impl<'a, T: Elem> Expr<'_, T> {
     ///
     /// # Panics
     /// * If the array length of the input expression does not match the length of the output.
+    /// * On any difference between actual and expected source data length (although the intent
+    ///   is to logically eliminate this)
     pub fn eval_into_slice(&mut self, out: &mut [T]) {
         assert_eq!(self.len(), out.len());
 
         let mut cursor = self.cursor;
-        while let Some((x, m)) = &mut self.next() {
+        while let Some((x, m)) = self.next() {
             let start = cursor;
-            let end = start + *m;
+            let end = start + m;
             cursor = end;
             out[start..end].copy_from_slice(x);
         }
-
-        // Reset iteration for another use
-        self.reset();
     }
 
     /// Evaluate the next chunk
+    ///
+    /// ## Panics
+    /// * On any difference between actual and expected source data length (although the intent
+    ///   is to logically eliminate this)
     fn next(&'a mut self) -> Option<(&[T], usize)> {
         use Op::*;
         let n = self.len();
@@ -138,16 +149,36 @@ impl<'a, T: Elem> Expr<'_, T> {
 
         let ret = match &mut self.op {
             Array { v } => {
-                if self.cursor >= v.as_ref().len() {
+                if self.cursor >= n {
                     None
                 } else {
                     let end = n.min(self.cursor + N);
                     let start = cursor;
                     let m = end - start;
                     cursor = end;
-                    // Copy into local storage to make sure lifetimes line up
-                    // and align is controlled
+                    // Copy into local storage to make sure lifetimes line up and align is controlled
                     self.storage.0[0..m].copy_from_slice(&v[start..end]);
+                    Some((&self.storage.0[..m], m))
+                }
+            }
+            Iterator { v } => {
+                if self.cursor >= n {
+                    None
+                } else {
+                    let end = n.min(self.cursor + N);
+                    let start = cursor;
+                    let m = end - start;
+                    cursor = end;
+                    // Copy into local storage to make sure lifetimes line up and align is controlled
+                    //
+                    // While an unwrap is used here for clarity, there is not much performance
+                    // difference between this, which provides some guarantee that we will not
+                    // return incorrect results, and the alternative, which is to do something
+                    // more idiomatic like `v.take(m).zip(...).for_each(...)`. Because we check
+                    // the length of the iterator before the start of evaluation and only take
+                    // at most the number of values known to be in the iterator, this unwrap
+                    // should never result in a panic unless there has been a real error in logic.
+                    (0..m).for_each(|i| self.storage.0[i] = *v.next().unwrap());
                     Some((&self.storage.0[..m], m))
                 }
             }
@@ -155,7 +186,7 @@ impl<'a, T: Elem> Expr<'_, T> {
                 if let Some(acc) = acc {
                     // If we haven't evaluated the accumulator yet, do it now
                     let v = match acc.v {
-                        None => acc.eval_without_reset(),
+                        None => acc.eval(),
                         Some(v) => v,
                     };
 
@@ -198,33 +229,6 @@ impl<'a, T: Elem> Expr<'_, T> {
         ret
     }
 
-    /// Reset iteration cursor across whole expression.
-    /// This does _not_ clear the values in expression storage,
-    /// but does reset the stored value of any accumulators.
-    fn reset(&mut self) {
-        use Op::*;
-        self.cursor = 0;
-
-        match &mut self.op {
-            Array { .. } => {}
-            Scalar { acc } => {
-                if let Some(acc) = acc {
-                    acc.reset();
-                };
-            }
-            Unary { a, .. } => a.reset(),
-            Binary { a, b, .. } => {
-                a.reset();
-                b.reset();
-            }
-            Ternary { a, b, c, .. } => {
-                a.reset();
-                b.reset();
-                c.reset();
-            }
-        };
-    }
-
     /// The length of the output of the array expression.
     /// This inherits the minimum length of any input.
     #[allow(clippy::len_without_is_empty)]
@@ -244,15 +248,6 @@ pub struct Accumulator<'a, T: Elem> {
 impl<'a, T: Elem> Accumulator<'a, T> {
     /// Evaluate the input expression and accumulate the output values.
     pub fn eval(&mut self) -> T {
-        let v = self.eval_without_reset();
-        self.reset();
-        v
-    }
-
-    /// Evaluate the input expression and accumulate the output values.
-    /// Because the resulting value may be reused by a downstream expression,
-    /// this does _not_ reset after evaluation.
-    pub(crate) fn eval_without_reset(&mut self) -> T {
         let f = self.f;
         let mut v = self.start;
         while let Some((x, _m)) = self.a.next() {
@@ -261,13 +256,5 @@ impl<'a, T: Elem> Accumulator<'a, T> {
 
         self.v = Some(v);
         v
-    }
-
-    /// Reset iteration cursor across whole expression.
-    /// This does _not_ clear the values in expression storage,
-    /// but does reset the stored value of any accumulators.
-    pub(crate) fn reset(&mut self) {
-        self.v = None;
-        self.a.reset();
     }
 }
