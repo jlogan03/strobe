@@ -3,3 +3,4 @@ members = [
     "strobe",
 ]
 exclude = [ "test_no_std" ]
+resolver = "2"
