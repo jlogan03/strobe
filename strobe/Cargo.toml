@@ -13,18 +13,15 @@ readme = "README.md"
 
 [dependencies]
 num-traits = { version = "0.2.16", default-features = false, features=["libm"] }
-rand = { version="0.8.5", optional=true }  # Only used for tests and benchmarks
 
 [dev-dependencies]
-ndarray = "0.15.6"
 rand = "0.8.5"
+criterion = "0.5.1"
 
 [features]
 default = ["std"]
 std = []
-_benchmarking = ["std", "rand"]
 
-[profile.release]
-opt-level = 3
-codegen-units = 1
-lto = true
+[[bench]]
+name = "bench_mul"
+harness = false
