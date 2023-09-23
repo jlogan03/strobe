@@ -117,8 +117,6 @@
 //! * I can hand-vectorize my array operations and do them even faster with even less memory!
 //!     * Cool! Have fun with that.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "_benchmarking", feature(test))]
-#[cfg_attr(feature = "_benchmarking", allow(soft_unstable))]
 use num_traits::Num;
 
 /// Minimally-constrained numeric element
@@ -180,7 +178,7 @@ mod test_std {
 
 /// Convenience functions for generating random numbers with a fixed seed
 /// to use as inputs for tests and benchmarks
-#[cfg(any(test, feature = "_benchmarking"))]
+#[cfg(test)]
 pub(crate) mod randn {
     use rand::distributions::{Distribution, Standard};
     use rand::rngs::StdRng;
@@ -709,101 +707,5 @@ mod test {
         // Make sure the values match
         // As the expressions get more involved, we start to see roundoff differences due to ordering
         (0..x.len()).for_each(|i| assert!(((x[i] * y[i] * z[i] * w[i]) - xyzw[i]).abs() < 1e-15));
-    }
-}
-
-#[cfg(feature = "_benchmarking")]
-mod bench {
-    extern crate test;
-
-    use super::{randn::*, *};
-    use test::black_box;
-    use test::Bencher;
-
-    /// Number of array elements to use in benchmarks
-    const NB: usize = 10_000_000;
-
-    #[bench]
-    fn bench_mul_iterator(b: &mut Bencher) {
-        // Simple case with one multiplication
-        let mut rng = rng_fixed_seed();
-        let x = randn::<f64>(&mut rng, NB);
-        let y = randn::<f64>(&mut rng, NB);
-
-        b.iter(|| {
-            black_box({
-                let xi = &mut x.iter();
-                let yi = &mut y.iter();
-
-                let mut xn = xi.into();
-                let mut yn = yi.into();
-                let mut xyn = mul(&mut xn, &mut yn);
-
-                xyn.eval()
-            })
-        });
-    }
-
-    #[bench]
-    fn bench_mul(b: &mut Bencher) {
-        // Simple case with one multiplication
-        let mut rng = rng_fixed_seed();
-        let x = randn::<f64>(&mut rng, NB);
-        let y = randn::<f64>(&mut rng, NB);
-
-        b.iter(|| {
-            black_box({
-                let mut xn = array(&x);
-                let mut yn = array(&y);
-                let mut xyn = mul(&mut xn, &mut yn);
-
-                xyn.eval()
-            })
-        });
-    }
-
-    #[bench]
-    fn bench_mul_2x(b: &mut Bencher) {
-        // Slightly nontrivial case with two multiplications
-        let mut rng = rng_fixed_seed();
-        let x = randn::<f64>(&mut rng, NB);
-        let y = randn::<f64>(&mut rng, NB);
-        let z = randn::<f64>(&mut rng, NB);
-
-        b.iter(|| {
-            black_box({
-                let mut xn = array(&x);
-                let mut yn = array(&y);
-                let mut zn = array(&z);
-                let mut xyn = mul(&mut xn, &mut yn);
-                let mut xyzn = mul(&mut xyn, &mut zn);
-
-                xyzn.eval()
-            })
-        });
-    }
-
-    #[bench]
-    fn bench_mul_3x(b: &mut Bencher) {
-        // Slightly nontrivial case with two multiplications
-        let mut rng = rng_fixed_seed();
-        let x = randn::<f64>(&mut rng, NB);
-        let y = randn::<f64>(&mut rng, NB);
-        let z = randn::<f64>(&mut rng, NB);
-        let w = randn::<f64>(&mut rng, NB);
-
-        b.iter(|| {
-            black_box({
-                let xn = &mut array(&x);
-                let yn = &mut array(&y);
-                let zn = &mut array(&z);
-                let wn = &mut array(&w);
-                let xyn = &mut mul(xn, yn);
-                let zwn = &mut mul(zn, wn);
-                let xyzwn = &mut mul(xyn, zwn);
-
-                xyzwn.eval()
-            })
-        });
     }
 }
