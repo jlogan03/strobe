@@ -49,7 +49,7 @@ pub fn iterator<'a, T: Elem, const N: usize>(
     // must be equal to the lower bound
     let n = match v.size_hint() {
         (lower, Some(upper)) if lower == upper => lower,
-        _ => {return Err("Iterator has unbounded size")},
+        _ => return Err("Iterator has unbounded size"),
     };
     Ok(Expr::new(T::zero(), Iterator { v }, n))
 }
