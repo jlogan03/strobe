@@ -213,6 +213,19 @@ mod test {
     const NT: usize = 67;
 
     #[test]
+    fn test_small_storage() {
+        // Make sure parametrized storage size behaves well down to the limit
+        // Simple case with depth one
+        let mut rng = rng_fixed_seed();
+        let x = randn::<f64>(&mut rng, NT);
+        let mut xn: Expr<'_, _, 1> = array(&x);
+        let out = abs(&mut xn).eval().unwrap();
+
+        // Make sure the values match
+        (0..x.len()).for_each(|i| assert_eq!(x[i].abs(), out[i]));
+    }
+
+    #[test]
     fn test_abs() {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
