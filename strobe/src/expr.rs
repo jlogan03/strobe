@@ -11,22 +11,22 @@
 use crate::{ArrayMut, Elem, N};
 
 /// (1xN)-to-(1xN) elementwise array operation.
-pub trait UnaryFn<T: Elem>: Fn(&[T], &mut [T]) {}
-impl<T: Elem, K: Fn(&[T], &mut [T])> UnaryFn<T> for K {}
+pub trait UnaryFn<T: Elem>: Fn(&[T], &mut [T]) -> Result<(), &'static str> {}
+impl<T: Elem, K: Fn(&[T], &mut [T]) -> Result<(), &'static str>> UnaryFn<T> for K {}
 
 /// (2xN)-to-(1xN) elementwise array operation.
-pub trait BinaryFn<T: Elem>: Fn(&[T], &[T], &mut [T]) {}
-impl<T: Elem, K: Fn(&[T], &[T], &mut [T])> BinaryFn<T> for K {}
+pub trait BinaryFn<T: Elem>: Fn(&[T], &[T], &mut [T]) -> Result<(), &'static str> {}
+impl<T: Elem, K: Fn(&[T], &[T], &mut [T]) -> Result<(), &'static str>> BinaryFn<T> for K {}
 
 /// (3xN)-to-(1xN) elementwise array operation
 /// such as fused multiply-add.
-pub trait TernaryFn<T>: Fn(&[T], &[T], &[T], &mut [T]) {}
-impl<T: Elem, K: Fn(&[T], &[T], &[T], &mut [T])> TernaryFn<T> for K {}
+pub trait TernaryFn<T>: Fn(&[T], &[T], &[T], &mut [T]) -> Result<(), &'static str> {}
+impl<T: Elem, K: Fn(&[T], &[T], &[T], &mut [T]) -> Result<(), &'static str>> TernaryFn<T> for K {}
 
 /// (1xN)-to-(1x1) incremental-evaluation operation
 /// such as a cumulative sum or product.
-pub trait AccumulatorFn<T>: Fn(&[T], &mut T) {}
-impl<T: Elem, K: Fn(&[T], &mut T)> AccumulatorFn<T> for K {}
+pub trait AccumulatorFn<T>: Fn(&[T], &mut T) -> Result<(), &'static str> {}
+impl<T: Elem, K: Fn(&[T], &mut T) -> Result<(), &'static str>> AccumulatorFn<T> for K {}
 
 /// Fixed-size and favorably aligned intermediate storage
 /// for each expression node.
@@ -97,10 +97,10 @@ impl<'a, T: Elem> Expr<'_, T> {
     /// * On any difference between actual and expected source data length (although the intent
     ///   is to logically eliminate this)
     #[cfg(feature = "std")]
-    pub fn eval(&mut self) -> Vec<T> {
+    pub fn eval(&mut self) -> Result<Vec<T>, &'static str> {
         let mut out = vec![T::zero(); self.len()];
         self.eval_into(&mut out);
-        out
+        Ok(out)
     }
 
     /// Evaluate the expression, writing values into a preallocated array.
@@ -112,8 +112,9 @@ impl<'a, T: Elem> Expr<'_, T> {
     /// * If the array length of the input expression does not match the length of the output.
     /// * On any difference between actual and expected source data length (although the intent
     ///   is to logically eliminate this)
-    pub fn eval_into(&mut self, out: &mut ArrayMut<'a, T>) {
-        self.eval_into_slice(out.as_mut());
+    pub fn eval_into(&mut self, out: &mut ArrayMut<'a, T>) -> Result<(), &'static str> {
+        self.eval_into_slice(out.as_mut())?;
+        Ok(())
     }
 
     /// Evaluate the expression, writing values into a preallocated slice.
@@ -121,20 +122,21 @@ impl<'a, T: Elem> Expr<'_, T> {
     /// Requires at least one array input in the expression in order for
     /// the expression to inherit a finite length.
     ///
-    /// # Panics
+    /// # Errors
     /// * If the array length of the input expression does not match the length of the output.
-    /// * On any difference between actual and expected source data length (although the intent
-    ///   is to logically eliminate this)
-    pub fn eval_into_slice(&mut self, out: &mut [T]) {
-        assert_eq!(self.len(), out.len());
+    pub fn eval_into_slice(&mut self, out: &mut [T]) -> Result<(), &'static str> {
+        if self.len() != out.len() {
+            return Err("Expression data length does not match output size");
+        }
 
         let mut cursor = self.cursor;
-        while let Some((x, m)) = self.next() {
+        while let Some((x, m)) = self.next()? {
             let start = cursor;
             let end = start + m;
             cursor = end;
             out[start..end].copy_from_slice(x);
         }
+        Ok(())
     }
 
     /// Evaluate the next chunk
@@ -142,7 +144,7 @@ impl<'a, T: Elem> Expr<'_, T> {
     /// ## Panics
     /// * On any difference between actual and expected source data length (although the intent
     ///   is to logically eliminate this)
-    fn next(&'a mut self) -> Option<(&[T], usize)> {
+    fn next(&'a mut self) -> Result<Option<(&[T], usize)>, &'static str> {
         use Op::*;
         let n = self.len();
         let mut cursor = self.cursor;
@@ -170,15 +172,13 @@ impl<'a, T: Elem> Expr<'_, T> {
                     let m = end - start;
                     cursor = end;
                     // Copy into local storage to make sure lifetimes line up and align is controlled
-                    //
-                    // While an unwrap is used here for clarity, there is not much performance
-                    // difference between this, which provides some guarantee that we will not
-                    // return incorrect results, and the alternative, which is to do something
-                    // more idiomatic like `v.take(m).zip(...).for_each(...)`. Because we check
-                    // the length of the iterator before the start of evaluation and only take
-                    // at most the number of values known to be in the iterator, this unwrap
-                    // should never result in a panic unless there has been a real error in logic.
-                    (0..m).for_each(|i| self.storage.0[i] = *v.next().unwrap());
+                    for i in 0..m {
+                        let v_inner = v.next();
+                        match v_inner {
+                            Some(&x) => self.storage.0[i] = x,
+                            None => return Err("Input iterator ended early"),
+                        }
+                    }
                     Some((&self.storage.0[..m], m))
                 }
             }
@@ -186,7 +186,7 @@ impl<'a, T: Elem> Expr<'_, T> {
                 if let Some(acc) = acc {
                     // If we haven't evaluated the accumulator yet, do it now
                     let v = match acc.v {
-                        None => acc.eval(),
+                        None => acc.eval()?,
                         Some(v) => v,
                     };
 
@@ -197,7 +197,7 @@ impl<'a, T: Elem> Expr<'_, T> {
 
                 Some((&self.storage.0[..], N))
             }
-            Unary { a, f } => match a.next() {
+            Unary { a, f } => match a.next()? {
                 Some((x, m)) => {
                     cursor += m;
                     f(&x[0..m], &mut self.storage.0[0..m]);
@@ -205,7 +205,7 @@ impl<'a, T: Elem> Expr<'_, T> {
                 }
                 _ => None,
             },
-            Binary { a, b, f } => match (a.next(), b.next()) {
+            Binary { a, b, f } => match (a.next()?, b.next()?) {
                 (Some((x, p)), Some((y, q))) => {
                     let m = p.min(q);
                     cursor += m;
@@ -214,7 +214,7 @@ impl<'a, T: Elem> Expr<'_, T> {
                 }
                 _ => None,
             },
-            Ternary { a, b, c, f } => match (a.next(), b.next(), c.next()) {
+            Ternary { a, b, c, f } => match (a.next()?, b.next()?, c.next()?) {
                 (Some((x, p)), Some((y, q)), Some((z, r))) => {
                     let m = p.min(q.min(r));
                     cursor += m;
@@ -226,7 +226,7 @@ impl<'a, T: Elem> Expr<'_, T> {
         };
 
         self.cursor = cursor;
-        ret
+        Ok(ret)
     }
 
     /// The length of the output of the array expression.
@@ -247,14 +247,14 @@ pub struct Accumulator<'a, T: Elem> {
 
 impl<'a, T: Elem> Accumulator<'a, T> {
     /// Evaluate the input expression and accumulate the output values.
-    pub fn eval(&mut self) -> T {
+    pub fn eval(&mut self) -> Result<T, &'static str> {
         let f = self.f;
         let mut v = self.start;
-        while let Some((x, _m)) = self.a.next() {
+        while let Some((x, _m)) = self.a.next()? {
             f(x, &mut v);
         }
 
         self.v = Some(v);
-        v
+        Ok(v)
     }
 }
