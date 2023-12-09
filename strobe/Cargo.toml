@@ -25,3 +25,6 @@ std = []
 [[bench]]
 name = "bench_mul"
 harness = false
+
+[lints.rust]
+unsafe_code = "forbid"
