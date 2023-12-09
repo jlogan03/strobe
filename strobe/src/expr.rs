@@ -8,7 +8,7 @@
 //! input arrays more than once, because we only require
 //! _immutable_ references to the inputs, and we can have
 //! as many of these as we like.
-use crate::{ArrayMut, Elem, N};
+use crate::{ArrayMut, Elem};
 
 /// (1xN)-to-(1xN) elementwise array operation.
 pub trait UnaryFn<T: Elem>: Fn(&[T], &mut [T]) -> Result<(), &'static str> {}
@@ -33,16 +33,20 @@ impl<T: Elem, K: Fn(&[T], &mut T) -> Result<(), &'static str>> AccumulatorFn<T> 
 ///
 /// 64 is the max align req I'm aware of as of 2023-09-09 .
 #[repr(align(64))]
-struct Storage<T: Elem>([T; N]);
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
 
-impl<T: Elem> Storage<T> {
+impl<T: Elem, const N: usize> Storage<T, N> {
     fn new(v: T) -> Self {
         Self([v; N])
+    }
+
+    const fn size(&self) -> usize {
+        return N
     }
 }
 
 /// Operator kinds, categorized by dimensionality
-pub(crate) enum Op<'a, T: Elem> {
+pub(crate) enum Op<'a, T: Elem, const N: usize = 64> {
     /// Array identity
     Array { v: &'a [T] },
     /// Array identity via iterator, useful for interop with non-contiguous arrays
@@ -50,35 +54,35 @@ pub(crate) enum Op<'a, T: Elem> {
         v: &'a mut dyn Iterator<Item = &'a T>,
     },
     /// Scalar identity
-    Scalar { acc: Option<Accumulator<'a, T>> },
+    Scalar { acc: Option<Accumulator<'a, T, N>> },
     Unary {
-        a: &'a mut Expr<'a, T>,
+        a: &'a mut Expr<'a, T, N>,
         f: &'a dyn UnaryFn<T>,
     },
     Binary {
-        a: &'a mut Expr<'a, T>,
-        b: &'a mut Expr<'a, T>,
+        a: &'a mut Expr<'a, T, N>,
+        b: &'a mut Expr<'a, T, N>,
         f: &'a dyn BinaryFn<T>,
     },
     Ternary {
-        a: &'a mut Expr<'a, T>,
-        b: &'a mut Expr<'a, T>,
-        c: &'a mut Expr<'a, T>,
+        a: &'a mut Expr<'a, T, N>,
+        b: &'a mut Expr<'a, T, N>,
+        c: &'a mut Expr<'a, T, N>,
         f: &'a dyn TernaryFn<T>,
     },
 }
 
 /// A node in an elementwise array expression
 /// applying an (MxN)-to-(1xN) operator.
-pub struct Expr<'a, T: Elem> {
-    storage: Storage<T>,
-    pub(crate) op: Op<'a, T>,
+pub struct Expr<'a, T: Elem, const N: usize = 64> {
+    storage: Storage<T, N>,
+    pub(crate) op: Op<'a, T, N>,
     cursor: usize,
     len: usize,
 }
 
-impl<'a, T: Elem> Expr<'_, T> {
-    pub(crate) fn new(v: T, op: Op<'a, T>, len: usize) -> Expr<'a, T> {
+impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
+    pub(crate) fn new(v: T, op: Op<'a, T, N>, len: usize) -> Expr<'a, T, N> {
         Expr {
             storage: Storage::new(v),
             op,
@@ -92,10 +96,9 @@ impl<'a, T: Elem> Expr<'_, T> {
     /// Requires at least one array input in the expression in order for
     /// the expression to inherit a finite length.
     ///
-    /// # Panics
+    /// # Errors
     /// * If the array length of the input expression does not match the length of the output.
-    /// * On any difference between actual and expected source data length (although the intent
-    ///   is to logically eliminate this)
+    /// * On any error in a lower-level function during evaluation
     #[cfg(feature = "std")]
     pub fn eval(&mut self) -> Result<Vec<T>, &'static str> {
         let mut out = vec![T::zero(); self.len()];
@@ -108,10 +111,9 @@ impl<'a, T: Elem> Expr<'_, T> {
     /// Requires at least one array input in the expression in order for
     /// the expression to inherit a finite length.
     ///
-    /// # Panics
+    /// # Errors
     /// * If the array length of the input expression does not match the length of the output.
-    /// * On any difference between actual and expected source data length (although the intent
-    ///   is to logically eliminate this)
+    /// * On any error in a lower-level function during evaluation
     pub fn eval_into(&mut self, out: &mut ArrayMut<'a, T>) -> Result<(), &'static str> {
         self.eval_into_slice(out.as_mut())?;
         Ok(())
@@ -124,6 +126,7 @@ impl<'a, T: Elem> Expr<'_, T> {
     ///
     /// # Errors
     /// * If the array length of the input expression does not match the length of the output.
+    /// * On any error in a lower-level function during evaluation
     pub fn eval_into_slice(&mut self, out: &mut [T]) -> Result<(), &'static str> {
         if self.len() != out.len() {
             return Err("Expression data length does not match output size");
@@ -140,13 +143,13 @@ impl<'a, T: Elem> Expr<'_, T> {
     }
 
     /// Evaluate the next chunk
-    ///
-    /// ## Panics
-    /// * On any difference between actual and expected source data length (although the intent
-    ///   is to logically eliminate this)
+    /// 
+    /// # Errors
+    /// * On any error in a lower-level function during evaluation
     fn next(&'a mut self) -> Result<Option<(&[T], usize)>, &'static str> {
         use Op::*;
         let n = self.len();
+        let nstore = self.storage.size();
         let mut cursor = self.cursor;
 
         let ret = match &mut self.op {
@@ -154,7 +157,7 @@ impl<'a, T: Elem> Expr<'_, T> {
                 if self.cursor >= n {
                     None
                 } else {
-                    let end = n.min(self.cursor + N);
+                    let end = n.min(self.cursor + nstore);
                     let start = cursor;
                     let m = end - start;
                     cursor = end;
@@ -167,7 +170,7 @@ impl<'a, T: Elem> Expr<'_, T> {
                 if self.cursor >= n {
                     None
                 } else {
-                    let end = n.min(self.cursor + N);
+                    let end = n.min(self.cursor + nstore);
                     let start = cursor;
                     let m = end - start;
                     cursor = end;
@@ -238,14 +241,14 @@ impl<'a, T: Elem> Expr<'_, T> {
 }
 
 /// A many-to-one adapter for the output of an expression.
-pub struct Accumulator<'a, T: Elem> {
+pub struct Accumulator<'a, T: Elem, const N: usize = 64> {
     pub(crate) v: Option<T>,
     pub(crate) start: T,
-    pub(crate) a: &'a mut Expr<'a, T>,
+    pub(crate) a: &'a mut Expr<'a, T, N>,
     pub(crate) f: &'a dyn AccumulatorFn<T>,
 }
 
-impl<'a, T: Elem> Accumulator<'a, T> {
+impl<'a, T: Elem, const N: usize> Accumulator<'a, T, N> {
     /// Evaluate the input expression and accumulate the output values.
     pub fn eval(&mut self) -> Result<T, &'static str> {
         let f = self.f;

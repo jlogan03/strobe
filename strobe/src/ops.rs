@@ -11,10 +11,10 @@
 //! For example, you might want to use powi, which isn't treated directly here because
 //! it requires configuration using a different type from the element (the integer power):
 //! ```rust
-//! use strobe::{array, unary};
+//! use strobe::{Expr, array, unary};
 //!
 //! let x = [0.0_f64, 1.0, 2.0];
-//! let mut xn = array(&x);  // Input expression node for x
+//! let mut xn: Expr<'_, _, 64> = array(&x);  // Input expression node for x
 //!
 //! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = x[i].powi(2)}); Ok(()) };
 //! let xsq = unary(&mut xn, &sq_func).eval().unwrap();
@@ -26,7 +26,7 @@ use crate::{Array, Elem};
 use num_traits::{Float, MulAdd};
 
 /// Array identity operation. This allows the use of Vec, etc. as inputs.
-pub fn array<'a, T: Elem>(v: &'a Array<T>) -> Expr<'a, T> {
+pub fn array<'a, T: Elem, const N: usize>(v: &'a Array<T>) -> Expr<'a, T, N> {
     use Op::Array;
     Expr::new(T::zero(), Array { v: v.as_ref() }, v.as_ref().len())
 }
@@ -40,7 +40,7 @@ pub fn array<'a, T: Elem>(v: &'a Array<T>) -> Expr<'a, T> {
 ///
 /// ## Panics
 /// * If the length of the iterator is not known exactly
-pub fn iterator<'a, T: Elem>(v: &'a mut dyn Iterator<Item = &'a T>) -> Expr<'a, T> {
+pub fn iterator<'a, T: Elem, const N: usize>(v: &'a mut dyn Iterator<Item = &'a T>) -> Expr<'a, T, N> {
     use Op::Iterator;
     // In order to use the iterator in a calculation that requires concrete
     // size bounds, it must have an upper bound on size, and that upper bound
@@ -53,29 +53,29 @@ pub fn iterator<'a, T: Elem>(v: &'a mut dyn Iterator<Item = &'a T>) -> Expr<'a, 
 }
 
 /// Slice identity operation. This allows the use of a slice as an input.
-pub fn slice<T: Elem>(v: &[T]) -> Expr<'_, T> {
+pub fn slice<T: Elem, const N: usize>(v: &[T]) -> Expr<'_, T, N> {
     use Op::Array;
     Expr::new(T::zero(), Array { v }, v.len())
 }
 
 /// A scalar identity operation is always either a constant or the
 /// output of an accumulator to be used in a downstream expression.
-fn scalar<T: Elem>(v: T, acc: Option<Accumulator<'_, T>>) -> Expr<'_, T> {
+fn scalar<T: Elem, const N: usize>(v: T, acc: Option<Accumulator<'_, T, N>>) -> Expr<'_, T, N> {
     use Op::Scalar;
     Expr::new(v, Scalar { acc }, usize::MAX)
 }
 
 /// Constant identity operation. This allows use of a constant value as input.
-pub fn constant<'a, T: Elem>(v: T) -> Expr<'a, T> {
+pub fn constant<'a, T: Elem, const N: usize>(v: T) -> Expr<'a, T, N> {
     scalar(v, None)
 }
 
 /// Assemble an arbitrary (1xN)-to-(1x1) operation.
-pub fn accumulator<'a, T: Elem>(
+pub fn accumulator<'a, T: Elem, const N: usize>(
     start: T,
-    a: &'a mut Expr<'a, T>,
+    a: &'a mut Expr<'a, T, N>,
     f: &'a dyn AccumulatorFn<T>,
-) -> Accumulator<'a, T> {
+) -> Accumulator<'a, T, N> {
     Accumulator {
         v: None,
         start,
@@ -85,30 +85,30 @@ pub fn accumulator<'a, T: Elem>(
 }
 
 /// Assemble an arbitrary (1xN)-to-(1xN) operation.
-pub fn unary<'a, T: Elem>(a: &'a mut Expr<'a, T>, f: &'a dyn UnaryFn<T>) -> Expr<'a, T> {
+pub fn unary<'a, T: Elem, const N: usize>(a: &'a mut Expr<'a, T, N>, f: &'a dyn UnaryFn<T>) -> Expr<'a, T, N> {
     use Op::Unary;
     let n = a.len();
     Expr::new(T::zero(), Unary { a, f }, n)
 }
 
 /// Assemble an arbitrary (2xN)-to-(1xN) operation.
-pub fn binary<'a, T: Elem>(
-    a: &'a mut Expr<'a, T>,
-    b: &'a mut Expr<'a, T>,
+pub fn binary<'a, T: Elem, const N: usize>(
+    a: &'a mut Expr<'a, T, N>,
+    b: &'a mut Expr<'a, T, N>,
     f: &'a dyn BinaryFn<T>,
-) -> Expr<'a, T> {
+) -> Expr<'a, T, N> {
     use Op::Binary;
     let n = a.len().min(b.len());
     Expr::new(T::zero(), Binary { a, b, f }, n)
 }
 
 /// Assemble an arbitrary (3xN)-to-(1xN) operation.
-pub fn ternary<'a, T: Elem>(
-    a: &'a mut Expr<'a, T>,
-    b: &'a mut Expr<'a, T>,
-    c: &'a mut Expr<'a, T>,
+pub fn ternary<'a, T: Elem, const N: usize>(
+    a: &'a mut Expr<'a, T, N>,
+    b: &'a mut Expr<'a, T, N>,
+    c: &'a mut Expr<'a, T, N>,
     f: &'a dyn TernaryFn<T>,
-) -> Expr<'a, T> {
+) -> Expr<'a, T, N> {
     use Op::Ternary;
     let n = a.len().min(b.len().min(c.len()));
     Expr::new(T::zero(), Ternary { a, b, c, f }, n)
@@ -121,10 +121,10 @@ fn min_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<()
 
 /// Elementwise minimum for strictly ordered number types.
 /// For floating-point version with NaN handling, see `fmin`.
-pub fn min<'a, T: Elem + Ord>(
-    left: &'a mut Expr<'a, T>,
-    right: &'a mut Expr<'a, T>,
-) -> Expr<'a, T> {
+pub fn min<'a, T: Elem + Ord, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(left, right, &min_inner)
 }
 
@@ -135,10 +135,10 @@ fn max_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<()
 
 /// Elementwise maximum for strictly ordered number types.
 /// For floating-point version with NaN handling, see `fmax`.
-pub fn max<'a, T: Elem + Ord>(
-    left: &'a mut Expr<'a, T>,
-    right: &'a mut Expr<'a, T>,
-) -> Expr<'a, T> {
+pub fn max<'a, T: Elem + Ord, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(left, right, &max_inner)
 }
 
@@ -148,7 +148,7 @@ fn add_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise addition
-pub fn add<'a, T: Elem>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn add<'a, T: Elem, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     binary(left, right, &add_inner)
 }
 
@@ -158,7 +158,7 @@ fn sub_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise subtraction
-pub fn sub<'a, T: Elem>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn sub<'a, T: Elem, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     binary(left, right, &sub_inner)
 }
 
@@ -168,7 +168,7 @@ fn mul_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise multiplication
-pub fn mul<'a, T: Elem>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn mul<'a, T: Elem, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     binary(left, right, &mul_inner)
 }
 
@@ -178,7 +178,7 @@ fn div_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise division
-pub fn div<'a, T: Elem>(numer: &'a mut Expr<'a, T>, denom: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn div<'a, T: Elem, const N: usize>(numer: &'a mut Expr<'a, T, N>, denom: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     binary(numer, denom, &div_inner)
 }
 
@@ -189,7 +189,7 @@ fn fmin_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'
 
 /// Elementwise floating-point minimum.
 /// Ignores NaN values if either value is a number.
-pub fn fmin<'a, T: Float>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn fmin<'a, T: Float, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     binary(left, right, &fmin_inner)
 }
 
@@ -200,7 +200,7 @@ fn fmax_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'
 
 /// Elementwise floating-point maximum.
 /// Ignores NaN values if either value is a number.
-pub fn fmax<'a, T: Float>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn fmax<'a, T: Float, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     binary(left, right, &fmax_inner)
 }
 
@@ -210,7 +210,7 @@ fn powf_inner<T: Float>(x: &[T], y: &[T], out: &mut [T]) -> Result<(), &'static 
 }
 
 /// Elementwise float exponent for float types
-pub fn powf<'a, T: Float>(a: &'a mut Expr<'a, T>, b: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn powf<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>, b: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     binary(a, b, &powf_inner)
 }
 
@@ -220,7 +220,7 @@ fn flog2_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise log base 2 for float types
-pub fn flog2<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn flog2<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &flog2_inner)
 }
 
@@ -230,7 +230,7 @@ fn flog10_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise log base 10 for float types
-pub fn flog10<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn flog10<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &flog10_inner)
 }
 
@@ -240,7 +240,7 @@ fn exp_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise e^x for float types
-pub fn exp<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn exp<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &exp_inner)
 }
 
@@ -254,7 +254,7 @@ fn atan2_inner<T: Float>(y: &[T], x: &[T], out: &mut [T]) -> Result<(), &'static
 ///
 /// In accordance with tradition, the inputs are taken in (`y`, `x`) order
 /// and evaluated like `y.atan2(x)`.
-pub fn atan2<'a, T: Float>(y: &'a mut Expr<'a, T>, x: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn atan2<'a, T: Float, const N: usize>(y: &'a mut Expr<'a, T, N>, x: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     binary(y, x, &atan2_inner)
 }
 
@@ -264,7 +264,7 @@ fn sin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise sin(x) for float types
-pub fn sin<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn sin<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &sin_inner)
 }
 
@@ -274,7 +274,7 @@ fn tan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise tan(x) for float types
-pub fn tan<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn tan<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &tan_inner)
 }
 
@@ -284,7 +284,7 @@ fn cos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise cos(x) for float types
-pub fn cos<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn cos<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &cos_inner)
 }
 
@@ -294,7 +294,7 @@ fn asin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise asin(x) for float types
-pub fn asin<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn asin<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &asin_inner)
 }
 
@@ -304,7 +304,7 @@ fn acos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise acos(x) for float types
-pub fn acos<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn acos<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &acos_inner)
 }
 
@@ -318,7 +318,7 @@ fn atan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// This function will produce erroneous results near multiple of pi/2.
 /// For a version that maintains correctness near singularities in tan(x),
 /// see `atan2`.
-pub fn atan<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn atan<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &atan_inner)
 }
 
@@ -328,7 +328,7 @@ fn sinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise sinh(x) for float types
-pub fn sinh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn sinh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &sinh_inner)
 }
 
@@ -338,7 +338,7 @@ fn cosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise cosh(x) for float types
-pub fn cosh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn cosh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &cosh_inner)
 }
 
@@ -348,7 +348,7 @@ fn tanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise tanh(x) for float types
-pub fn tanh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn tanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &tanh_inner)
 }
 
@@ -358,7 +358,7 @@ fn asinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise asinh(x) for float types
-pub fn asinh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn asinh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &asinh_inner)
 }
 
@@ -368,7 +368,7 @@ fn acosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise acosh(x) for float types
-pub fn acosh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn acosh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &acosh_inner)
 }
 
@@ -378,7 +378,7 @@ fn atanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise atanh(x) for float types
-pub fn atanh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn atanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &atanh_inner)
 }
 
@@ -388,7 +388,7 @@ fn abs_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise abs(x) for float types
-pub fn abs<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn abs<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &abs_inner)
 }
 
@@ -413,11 +413,11 @@ fn mul_add_inner<T: Elem + MulAdd<T, Output = T>>(
 /// However, if the compilation target does _not_ support FMA
 /// or if FMA is not enabled, this will be much slower than a
 /// separate multiply and add, because it will not vectorize.
-pub fn mul_add<'a, T: Elem + MulAdd<T, Output = T>>(
-    a: &'a mut Expr<'a, T>,
-    b: &'a mut Expr<'a, T>,
-    c: &'a mut Expr<'a, T>,
-) -> Expr<'a, T> {
+pub fn mul_add<'a, T: Elem + MulAdd<T, Output = T>, const N: usize>(
+    a: &'a mut Expr<'a, T, N>,
+    b: &'a mut Expr<'a, T, N>,
+    c: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     ternary(a, b, c, &mul_add_inner)
 }
 
@@ -430,7 +430,7 @@ fn sum_inner<T: Elem>(x: &[T], v: &mut T) -> Result<(), &'static str> {
 ///
 /// Note that while it is allowed, applying this to an expression with
 /// a scalar operation will produce meaningless results.
-pub fn sum<'a, T: Elem>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+pub fn sum<'a, T: Elem, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     let acc = Some(accumulator(T::zero(), a, &sum_inner));
     scalar(T::zero(), acc)
 }

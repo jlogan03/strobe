@@ -5,7 +5,7 @@ use strobe::mul;
 fn bench_mul_1x(c: &mut Criterion) {
     let mut group = c.benchmark_group("mul_1x");
     for size in [
-        10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 700_000, 1_000_000, 2_000_000,
+        10, 100, 1000, 10_000, 100_000, 200_000, 400_000, 700_000, 1_000_000, 2_000_000, 10_000_000,
     ]
     .iter()
     {
@@ -14,8 +14,15 @@ fn bench_mul_1x(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("strobe", size), size, |b, &size| {
             let mut rng = rng_fixed_seed();
             let x = randn::<f64>(&mut rng, size);
+            let y = randn::<f64>(&mut rng, size);
 
-            b.iter(|| black_box(mul(&mut x[..].into(), &mut x[..].into()).eval().unwrap()));
+            b.iter(|| {
+                black_box(
+                    mul::<_, 64>(&mut x[..].into(), &mut y[..].into())
+                        .eval()
+                        .unwrap(),
+                )
+            });
         });
 
         group.bench_with_input(
@@ -24,15 +31,9 @@ fn bench_mul_1x(c: &mut Criterion) {
             |b, &size| {
                 let mut rng = rng_fixed_seed();
                 let x = randn::<f64>(&mut rng, size);
+                let y = randn::<f64>(&mut rng, size);
 
-                b.iter(|| {
-                    black_box(
-                        x.iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>(),
-                    )
-                });
+                b.iter(|| black_box((0..x.len()).map(|i| x[i] * y[i]).collect::<Vec<_>>()));
             },
         );
     }
@@ -42,7 +43,7 @@ fn bench_mul_1x(c: &mut Criterion) {
 fn bench_mul_2x(c: &mut Criterion) {
     let mut group = c.benchmark_group("mul_2x");
     for size in [
-        10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 700_000, 1_000_000, 2_000_000,
+        10, 100, 1000, 10_000, 100_000, 200_000, 400_000, 700_000, 1_000_000, 2_000_000, 10_000_000,
     ]
     .iter()
     {
@@ -51,12 +52,14 @@ fn bench_mul_2x(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("strobe", size), size, |b, &size| {
             let mut rng = rng_fixed_seed();
             let x = randn::<f64>(&mut rng, size);
+            let y = randn::<f64>(&mut rng, size);
+            let z = randn::<f64>(&mut rng, size);
 
             b.iter(|| {
                 black_box(
                     mul(
-                        &mut mul(&mut x[..].into(), &mut x[..].into()),
-                        &mut x[..].into(),
+                        &mut mul::<_, 64>(&mut x[..].into(), &mut y[..].into()),
+                        &mut z[..].into(),
                     )
                     .eval()
                     .unwrap(),
@@ -70,17 +73,15 @@ fn bench_mul_2x(c: &mut Criterion) {
             |b, &size| {
                 let mut rng = rng_fixed_seed();
                 let x = randn::<f64>(&mut rng, size);
+                let y = randn::<f64>(&mut rng, size);
+                let z = randn::<f64>(&mut rng, size);
 
                 let mut xy = vec![0.0; size];
 
                 b.iter(|| {
                     black_box({
-                        (0..size).for_each(|i| xy[i] = x[i] * x[i]);
-                        let xyz = xy
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
+                        (0..size).for_each(|i| xy[i] = x[i] * y[i]);
+                        let xyz = (0..size).map(|i| xy[i] * z[i]).collect::<Vec<_>>();
                         xyz
                     })
                 });
@@ -93,19 +94,13 @@ fn bench_mul_2x(c: &mut Criterion) {
             |b, &size| {
                 let mut rng = rng_fixed_seed();
                 let x = randn::<f64>(&mut rng, size);
+                let y = randn::<f64>(&mut rng, size);
+                let z = randn::<f64>(&mut rng, size);
 
                 b.iter(|| {
                     black_box({
-                        let xy = x
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
-                        let xyz = xy
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
+                        let xy = (0..size).map(|i| x[i] * y[i]).collect::<Vec<_>>();
+                        let xyz = (0..size).map(|i| xy[i] * z[i]).collect::<Vec<_>>();
                         xyz
                     })
                 });
@@ -118,7 +113,7 @@ fn bench_mul_2x(c: &mut Criterion) {
 fn bench_mul_3x(c: &mut Criterion) {
     let mut group = c.benchmark_group("mul_3x");
     for size in [
-        10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 700_000, 1_000_000, 2_000_000,
+        10, 100, 1000, 10_000, 100_000, 200_000, 400_000, 700_000, 1_000_000, 2_000_000, 10_000_000,
     ]
     .iter()
     {
@@ -127,15 +122,18 @@ fn bench_mul_3x(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("strobe", size), size, |b, &size| {
             let mut rng = rng_fixed_seed();
             let x = randn::<f64>(&mut rng, size);
+            let y = randn::<f64>(&mut rng, size);
+            let z = randn::<f64>(&mut rng, size);
+            let w = randn::<f64>(&mut rng, size);
 
             b.iter(|| {
                 black_box(
                     mul(
                         &mut mul(
-                            &mut mul(&mut x[..].into(), &mut x[..].into()),
-                            &mut x[..].into(),
+                            &mut mul::<_, 64>(&mut x[..].into(), &mut y[..].into()),
+                            &mut z[..].into(),
                         ),
-                        &mut x[..].into(),
+                        &mut w[..].into(),
                     )
                     .eval()
                     .unwrap(),
@@ -149,19 +147,18 @@ fn bench_mul_3x(c: &mut Criterion) {
             |b, &size| {
                 let mut rng = rng_fixed_seed();
                 let x = randn::<f64>(&mut rng, size);
+                let y = randn::<f64>(&mut rng, size);
+                let z = randn::<f64>(&mut rng, size);
+                let w = randn::<f64>(&mut rng, size);
 
                 let mut xy = vec![0.0; size];
                 let mut xyz = vec![0.0; size];
 
                 b.iter(|| {
                     black_box({
-                        (0..size).for_each(|i| xy[i] = x[i] * x[i]);
-                        (0..size).for_each(|i| xyz[i] = xy[i] * x[i]);
-                        let xyzw = xyz
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
+                        (0..size).for_each(|i| xy[i] = x[i] * y[i]);
+                        (0..size).for_each(|i| xyz[i] = xy[i] * z[i]);
+                        let xyzw = (0..size).map(|i| xyz[i] * w[i]).collect::<Vec<_>>();
                         xyzw
                     })
                 });
@@ -174,24 +171,15 @@ fn bench_mul_3x(c: &mut Criterion) {
             |b, &size| {
                 let mut rng = rng_fixed_seed();
                 let x = randn::<f64>(&mut rng, size);
+                let y = randn::<f64>(&mut rng, size);
+                let z = randn::<f64>(&mut rng, size);
+                let w = randn::<f64>(&mut rng, size);
 
                 b.iter(|| {
                     black_box({
-                        let xy = x
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
-                        let xyz = xy
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
-                        let xyzw = xyz
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
+                        let xy = (0..size).map(|i| x[i] * y[i]).collect::<Vec<_>>();
+                        let xyz = (0..size).map(|i| xy[i] * z[i]).collect::<Vec<_>>();
+                        let xyzw = (0..size).map(|i| xyz[i] * w[i]).collect::<Vec<_>>();
                         xyzw
                     })
                 });
@@ -204,7 +192,7 @@ fn bench_mul_3x(c: &mut Criterion) {
 fn bench_mul_4x(c: &mut Criterion) {
     let mut group = c.benchmark_group("mul_4x");
     for size in [
-        10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 700_000, 1_000_000, 2_000_000,
+        10, 100, 1000, 10_000, 100_000, 200_000, 400_000, 700_000, 1_000_000, 2_000_000, 10_000_000,
     ]
     .iter()
     {
@@ -213,18 +201,22 @@ fn bench_mul_4x(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("strobe", size), size, |b, &size| {
             let mut rng = rng_fixed_seed();
             let x = randn::<f64>(&mut rng, size);
+            let y = randn::<f64>(&mut rng, size);
+            let z = randn::<f64>(&mut rng, size);
+            let w = randn::<f64>(&mut rng, size);
+            let v = randn::<f64>(&mut rng, size);
 
             b.iter(|| {
                 black_box(
                     mul(
                         &mut mul(
                             &mut mul(
-                                &mut mul(&mut x[..].into(), &mut x[..].into()),
-                                &mut x[..].into(),
+                                &mut mul::<_, 64>(&mut x[..].into(), &mut y[..].into()),
+                                &mut z[..].into(),
                             ),
-                            &mut x[..].into(),
+                            &mut w[..].into(),
                         ),
-                        &mut x[..].into(),
+                        &mut v[..].into(),
                     )
                     .eval()
                     .unwrap(),
@@ -238,6 +230,10 @@ fn bench_mul_4x(c: &mut Criterion) {
             |b, &size| {
                 let mut rng = rng_fixed_seed();
                 let x = randn::<f64>(&mut rng, size);
+                let y = randn::<f64>(&mut rng, size);
+                let z = randn::<f64>(&mut rng, size);
+                let w = randn::<f64>(&mut rng, size);
+                let v = randn::<f64>(&mut rng, size);
 
                 let mut xy = vec![0.0; size];
                 let mut xyz = vec![0.0; size];
@@ -245,14 +241,10 @@ fn bench_mul_4x(c: &mut Criterion) {
 
                 b.iter(|| {
                     black_box({
-                        (0..size).for_each(|i| xy[i] = x[i] * x[i]);
-                        (0..size).for_each(|i| xyz[i] = xy[i] * x[i]);
-                        (0..size).for_each(|i| xyzw[i] = xyz[i] * x[i]);
-                        let xyzwv = xyzw
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
+                        (0..size).for_each(|i| xy[i] = x[i] * y[i]);
+                        (0..size).for_each(|i| xyz[i] = xy[i] * z[i]);
+                        (0..size).for_each(|i| xyzw[i] = xyz[i] * w[i]);
+                        let xyzwv = (0..size).map(|i| xyzw[i] * v[i]).collect::<Vec<_>>();
                         xyzwv
                     })
                 });
@@ -265,29 +257,17 @@ fn bench_mul_4x(c: &mut Criterion) {
             |b, &size| {
                 let mut rng = rng_fixed_seed();
                 let x = randn::<f64>(&mut rng, size);
+                let y = randn::<f64>(&mut rng, size);
+                let z = randn::<f64>(&mut rng, size);
+                let w = randn::<f64>(&mut rng, size);
+                let v = randn::<f64>(&mut rng, size);
 
                 b.iter(|| {
                     black_box({
-                        let xy = x
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
-                        let xyz = xy
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
-                        let xyzw = xyz
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
-                        let xyzwv = xyzw
-                            .iter()
-                            .zip(x.iter())
-                            .map(|(xx, yy)| xx * yy)
-                            .collect::<Vec<_>>();
+                        let xy = (0..size).map(|i| x[i] * y[i]).collect::<Vec<_>>();
+                        let xyz = (0..size).map(|i| xy[i] * z[i]).collect::<Vec<_>>();
+                        let xyzw = (0..size).map(|i| xyz[i] * w[i]).collect::<Vec<_>>();
+                        let xyzwv = (0..size).map(|i| xyzw[i] * v[i]).collect::<Vec<_>>();
                         xyzwv
                     })
                 });

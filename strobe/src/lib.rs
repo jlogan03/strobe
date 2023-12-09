@@ -34,7 +34,7 @@
 //!
 //! # Example: (A - B) * (C + D) with one allocation
 //! ```rust
-//! use strobe::{array, add, sub, mul};
+//! use strobe::{Expr, array, add, sub, mul};
 //!
 //! // Generate some arrays to operate on
 //! const NT: usize = 10_000;
@@ -44,7 +44,7 @@
 //! let d = vec![3.14; NT];
 //!
 //! // Associate those arrays with inputs to the expression
-//! let an = &mut array(&a);
+//! let an: &mut Expr<'_, _, 64> = &mut array(&a);
 //! let bn = &mut array(&b);
 //! let cn = &mut array(&c);
 //! let dn = &mut array(&d);
@@ -61,12 +61,12 @@
 //! While we use a simple example here, any strobe expression can be
 //! evaluated into existing storage in this way.
 //! ```rust
-//! use strobe::{array, mul};
+//! use strobe::{Expr, array, mul};
 //!
 //! // Generate some arrays to operate on
 //! const NT: usize = 10_000;
 //! let a = vec![1.25_f64; NT];
-//! let an0 = &mut array(&a);  // Two input nodes from `a`, for brevity
+//! let an0: &mut Expr<'_, _, 64> = &mut array(&a);  // Two input nodes from `a`, for brevity
 //! let an1 = &mut array(&a);
 //!
 //! // Pre-allocate storage
@@ -85,10 +85,10 @@
 //! `accumulator` functions along with a matching function pointer
 //! or closure.
 //! ```rust
-//! use strobe::{array, unary};
+//! use strobe::{Expr, array, unary};
 //!
 //! let x = [0.0_f64, 1.0, 2.0];
-//! let mut xn = array(&x);
+//! let mut xn: Expr<'_, _, 64> = array(&x);
 //!
 //! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = x[i].powi(2)}); Ok(()) };
 //! let xsq = unary(&mut xn, &sq_func).eval().unwrap();
@@ -127,9 +127,6 @@ pub type Array<'a, T> = dyn AsRef<[T]> + 'a;
 /// Unopinionated (mutable) array type spanning Vec, fixed-size arrays, etc
 pub type ArrayMut<'a, T> = dyn AsMut<[T]> + 'a;
 
-/// Fixed size (in number of elements) of intermediate storage
-pub(crate) const N: usize = 64;
-
 pub mod expr;
 pub mod ops;
 
@@ -141,7 +138,7 @@ pub use ops::{
     tan, tanh, ternary, unary,
 };
 
-impl<'a, T: Elem, K> From<&'a mut K> for Expr<'a, T>
+impl<'a, T: Elem, const N: usize, K> From<&'a mut K> for Expr<'a, T, N>
 where
     K: Iterator<Item = &'a T>,
 {
@@ -150,7 +147,7 @@ where
     }
 }
 
-impl<'a, T: Elem, K> From<&'a K> for Expr<'a, T>
+impl<'a, T: Elem,const N: usize, K> From<&'a K> for Expr<'a, T, N>
 where
     K: AsRef<[T]>,
 {
@@ -159,7 +156,7 @@ where
     }
 }
 
-impl<'a, T: Elem> From<&'a [T]> for Expr<'a, T> {
+impl<'a, T: Elem, const N: usize,> From<&'a [T]> for Expr<'a, T, N> {
     fn from(value: &'a [T]) -> Self {
         slice(value)
     }
@@ -212,14 +209,15 @@ mod test {
     use super::{expr::*, randn::*, *};
 
     /// Number of elements to use for tests
-    const NT: usize = N + 3;
+    /// to give one full chunk and one partial chunk
+    const NT: usize = 67;
 
     #[test]
     fn test_abs() {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = abs(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -231,7 +229,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = atanh(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -245,7 +243,7 @@ mod test {
         let mut x = randn::<f64>(&mut rng, NT);
         (0..NT).for_each(|i| x[i] += 1.5); // Offset to avoid comparing nan values
 
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = acosh(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -257,7 +255,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = asinh(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -269,7 +267,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = tanh(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -281,7 +279,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = cosh(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -293,7 +291,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = sinh(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -305,7 +303,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = atan(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -317,7 +315,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = acos(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -329,7 +327,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = asin(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -341,7 +339,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = tan(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -353,7 +351,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = cos(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -365,7 +363,7 @@ mod test {
         // Simple case with depth one
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let out = sin(&mut xn).eval().unwrap();
 
         // Make sure the values match
@@ -379,7 +377,7 @@ mod test {
         let x = randn::<f64>(&mut rng, NT);
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let mut yn = array(&y);
 
         let out = atan2(&mut yn, &mut xn).eval().unwrap();
@@ -394,7 +392,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut yn = array(&y);
+        let mut yn: Expr<'_, _, 64> = array(&y);
 
         let out = exp(&mut yn).eval().unwrap();
 
@@ -408,7 +406,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut yn = array(&y);
+        let mut yn: Expr<'_, _, 64> = array(&y);
 
         let out = flog10(&mut yn).eval().unwrap();
 
@@ -422,7 +420,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut yn = array(&y);
+        let mut yn: Expr<'_, _, 64> = array(&y);
 
         let out = flog2(&mut yn).eval().unwrap();
 
@@ -436,7 +434,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(1.5);
+        let mut xn: Expr<'_, _, 64> = constant(1.5);
         let mut yn = array(&y);
 
         let out = powf(&mut yn, &mut xn).eval().unwrap();
@@ -452,7 +450,7 @@ mod test {
         let y = randn::<f64>(&mut rng, NT);
         let z = randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(5.0);
+        let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = array(&y);
         let mut zn = array(&z);
 
@@ -466,7 +464,7 @@ mod test {
     fn test_min() {
         let y: Vec<usize> = (0..NT).collect();
 
-        let mut xn = constant(1);
+        let mut xn: Expr<'_, _, 64> = constant(1);
         let mut yn = array(&y);
 
         let mut xyn = min(&mut yn, &mut xn);
@@ -481,7 +479,7 @@ mod test {
     fn test_max() {
         let y: Vec<usize> = (0..NT).collect();
 
-        let mut xn = constant(1);
+        let mut xn: Expr<'_, _, 64> = constant(1);
         let mut yn = array(&y);
 
         let mut xyn = max(&mut yn, &mut xn);
@@ -497,7 +495,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(0.5);
+        let mut xn: Expr<'_, _, 64> = constant(0.5);
         let mut yn = array(&y);
 
         let mut xyn = fmin(&mut yn, &mut xn);
@@ -513,7 +511,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(0.5);
+        let mut xn: Expr<'_, _, 64> = constant(0.5);
         let mut yn = array(&y);
 
         let mut xyn = fmax(&mut yn, &mut xn);
@@ -530,7 +528,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(5.0);
+        let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = array(&y);
 
         let mut xyn = div(&mut yn, &mut xn);
@@ -547,7 +545,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(5.0);
+        let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = array(&y);
 
         let mut xyn = sub(&mut xn, &mut yn);
@@ -564,7 +562,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(5.0);
+        let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = array(&y);
 
         let mut xyn = add(&mut xn, &mut yn);
@@ -581,7 +579,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
 
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
 
         let xsumn = sum(&mut xn);
 
@@ -607,7 +605,7 @@ mod test {
         let x = randn::<f64>(&mut rng, NT);
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let mut yn = array(&y);
 
         let xsumy = mul(&mut sum(&mut xn), &mut yn).eval().unwrap();
@@ -626,7 +624,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = &randn::<f64>(&mut rng, NT)[..];
 
-        let mut xn = constant(5.0);
+        let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = y.into();
 
         let mut xyn = mul(&mut xn, &mut yn);
@@ -643,7 +641,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = &randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(5.0);
+        let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = y.into();
 
         let mut xyn = mul(&mut xn, &mut yn);
@@ -661,7 +659,7 @@ mod test {
         let y = randn::<f64>(&mut rng, NT);
         let yi = &mut y.iter();
 
-        let mut xn = constant(5.0);
+        let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = yi.into();
 
         let mut xyn = mul(&mut xn, &mut yn);
@@ -678,7 +676,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = constant(5.0);
+        let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = array(&y);
 
         let mut xyn = mul(&mut xn, &mut yn);
@@ -696,7 +694,7 @@ mod test {
         let x = randn::<f64>(&mut rng, NT);
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let mut yn = array(&y);
 
         let f = |a: &[f64], b: &[f64], out: &mut [f64]| {
@@ -719,7 +717,7 @@ mod test {
         let x = randn::<f64>(&mut rng, NT);
         let y = randn::<f64>(&mut rng, NT);
 
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let mut yn = array(&y);
         let mut xyn = mul(&mut xn, &mut yn);
 
@@ -737,7 +735,7 @@ mod test {
         let y = randn::<f64>(&mut rng, NT);
         let z = randn::<f64>(&mut rng, NT);
 
-        let mut xn = array(&x);
+        let mut xn: Expr<'_, _, 64> = array(&x);
         let mut yn = array(&y);
         let mut zn = array(&z);
         let mut xyn = mul(&mut xn, &mut yn);
@@ -758,7 +756,7 @@ mod test {
         let z = randn::<f64>(&mut rng, NT);
         let w = randn::<f64>(&mut rng, NT);
 
-        let xn = &mut array(&x);
+        let xn: &mut Expr<'_, _, 64> = &mut array(&x);
         let yn = &mut array(&y);
         let zn = &mut array(&z);
         let wn = &mut array(&w);
