@@ -40,7 +40,9 @@ pub fn array<'a, T: Elem, const N: usize>(v: &'a Array<T>) -> Expr<'a, T, N> {
 ///
 /// ## Panics
 /// * If the length of the iterator is not known exactly
-pub fn iterator<'a, T: Elem, const N: usize>(v: &'a mut dyn Iterator<Item = &'a T>) -> Expr<'a, T, N> {
+pub fn iterator<'a, T: Elem, const N: usize>(
+    v: &'a mut dyn Iterator<Item = &'a T>,
+) -> Expr<'a, T, N> {
     use Op::Iterator;
     // In order to use the iterator in a calculation that requires concrete
     // size bounds, it must have an upper bound on size, and that upper bound
@@ -85,7 +87,10 @@ pub fn accumulator<'a, T: Elem, const N: usize>(
 }
 
 /// Assemble an arbitrary (1xN)-to-(1xN) operation.
-pub fn unary<'a, T: Elem, const N: usize>(a: &'a mut Expr<'a, T, N>, f: &'a dyn UnaryFn<T>) -> Expr<'a, T, N> {
+pub fn unary<'a, T: Elem, const N: usize>(
+    a: &'a mut Expr<'a, T, N>,
+    f: &'a dyn UnaryFn<T>,
+) -> Expr<'a, T, N> {
     use Op::Unary;
     let n = a.len();
     Expr::new(T::zero(), Unary { a, f }, n)
@@ -112,6 +117,150 @@ pub fn ternary<'a, T: Elem, const N: usize>(
     use Op::Ternary;
     let n = a.len().min(b.len().min(c.len()));
     Expr::new(T::zero(), Ternary { a, b, c, f }, n)
+}
+
+fn lt_inner<T: Elem + PartialOrd>(
+    left: &[T],
+    right: &[T],
+    out: &mut [T],
+) -> Result<(), &'static str> {
+    for i in 0..out.len() {
+        let res = left[i] < right[i];
+        if res {
+            out[i] = T::one();
+        } else {
+            out[i] = T::zero();
+        }
+    }
+    Ok(())
+}
+
+/// Elementwise less-than, returning T::one() for true and T::zero() for false.
+pub fn lt<'a, T: Elem + PartialOrd, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
+    binary(left, right, &lt_inner)
+}
+
+fn gt_inner<T: Elem + PartialOrd>(
+    left: &[T],
+    right: &[T],
+    out: &mut [T],
+) -> Result<(), &'static str> {
+    for i in 0..out.len() {
+        let res = left[i] > right[i];
+        if res {
+            out[i] = T::one();
+        } else {
+            out[i] = T::zero();
+        }
+    }
+    Ok(())
+}
+
+/// Elementwise greater-than, returning T::one() for true and T::zero() for false.
+pub fn gt<'a, T: Elem + PartialOrd, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
+    binary(left, right, &gt_inner)
+}
+
+fn le_inner<T: Elem + PartialOrd>(
+    left: &[T],
+    right: &[T],
+    out: &mut [T],
+) -> Result<(), &'static str> {
+    for i in 0..out.len() {
+        let res = left[i] <= right[i];
+        if res {
+            out[i] = T::one();
+        } else {
+            out[i] = T::zero();
+        }
+    }
+    Ok(())
+}
+
+/// Elementwise less-than-or-equal, returning T::one() for true and T::zero() for false.
+pub fn le<'a, T: Elem + PartialOrd, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
+    binary(left, right, &le_inner)
+}
+
+fn ge_inner<T: Elem + PartialOrd>(
+    left: &[T],
+    right: &[T],
+    out: &mut [T],
+) -> Result<(), &'static str> {
+    for i in 0..out.len() {
+        let res = left[i] >= right[i];
+        if res {
+            out[i] = T::one();
+        } else {
+            out[i] = T::zero();
+        }
+    }
+    Ok(())
+}
+
+/// Elementwise greater-than-or-equal, returning T::one() for true and T::zero() for false.
+pub fn ge<'a, T: Elem + PartialOrd, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
+    binary(left, right, &ge_inner)
+}
+
+fn eq_inner<T: Elem + PartialOrd>(
+    left: &[T],
+    right: &[T],
+    out: &mut [T],
+) -> Result<(), &'static str> {
+    for i in 0..out.len() {
+        let res = left[i] == right[i];
+        if res {
+            out[i] = T::one();
+        } else {
+            out[i] = T::zero();
+        }
+    }
+    Ok(())
+}
+
+/// Elementwise equals, returning T::one() for true and T::zero() for false.
+pub fn eq<'a, T: Elem + PartialOrd, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
+    binary(left, right, &eq_inner)
+}
+
+fn ne_inner<T: Elem + PartialOrd>(
+    left: &[T],
+    right: &[T],
+    out: &mut [T],
+) -> Result<(), &'static str> {
+    for i in 0..out.len() {
+        let res = left[i] != right[i];
+        if res {
+            out[i] = T::one();
+        } else {
+            out[i] = T::zero();
+        }
+    }
+    Ok(())
+}
+
+/// Elementwise not-equal, returning T::one() for true and T::zero() for false.
+pub fn ne<'a, T: Elem + PartialOrd, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
+    binary(left, right, &ne_inner)
 }
 
 fn min_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
@@ -148,7 +297,10 @@ fn add_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise addition
-pub fn add<'a, T: Elem, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
+pub fn add<'a, T: Elem, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(left, right, &add_inner)
 }
 
@@ -158,7 +310,10 @@ fn sub_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise subtraction
-pub fn sub<'a, T: Elem, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
+pub fn sub<'a, T: Elem, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(left, right, &sub_inner)
 }
 
@@ -168,7 +323,10 @@ fn mul_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise multiplication
-pub fn mul<'a, T: Elem, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
+pub fn mul<'a, T: Elem, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(left, right, &mul_inner)
 }
 
@@ -178,7 +336,10 @@ fn div_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise division
-pub fn div<'a, T: Elem, const N: usize>(numer: &'a mut Expr<'a, T, N>, denom: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
+pub fn div<'a, T: Elem, const N: usize>(
+    numer: &'a mut Expr<'a, T, N>,
+    denom: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(numer, denom, &div_inner)
 }
 
@@ -189,7 +350,10 @@ fn fmin_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'
 
 /// Elementwise floating-point minimum.
 /// Ignores NaN values if either value is a number.
-pub fn fmin<'a, T: Float, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
+pub fn fmin<'a, T: Float, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(left, right, &fmin_inner)
 }
 
@@ -200,7 +364,10 @@ fn fmax_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'
 
 /// Elementwise floating-point maximum.
 /// Ignores NaN values if either value is a number.
-pub fn fmax<'a, T: Float, const N: usize>(left: &'a mut Expr<'a, T, N>, right: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
+pub fn fmax<'a, T: Float, const N: usize>(
+    left: &'a mut Expr<'a, T, N>,
+    right: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(left, right, &fmax_inner)
 }
 
@@ -210,7 +377,10 @@ fn powf_inner<T: Float>(x: &[T], y: &[T], out: &mut [T]) -> Result<(), &'static 
 }
 
 /// Elementwise float exponent for float types
-pub fn powf<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>, b: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
+pub fn powf<'a, T: Float, const N: usize>(
+    a: &'a mut Expr<'a, T, N>,
+    b: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(a, b, &powf_inner)
 }
 
@@ -254,7 +424,10 @@ fn atan2_inner<T: Float>(y: &[T], x: &[T], out: &mut [T]) -> Result<(), &'static
 ///
 /// In accordance with tradition, the inputs are taken in (`y`, `x`) order
 /// and evaluated like `y.atan2(x)`.
-pub fn atan2<'a, T: Float, const N: usize>(y: &'a mut Expr<'a, T, N>, x: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
+pub fn atan2<'a, T: Float, const N: usize>(
+    y: &'a mut Expr<'a, T, N>,
+    x: &'a mut Expr<'a, T, N>,
+) -> Expr<'a, T, N> {
     binary(y, x, &atan2_inner)
 }
 

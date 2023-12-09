@@ -134,8 +134,8 @@ pub use expr::{AccumulatorFn, BinaryFn, Expr, TernaryFn, UnaryFn};
 
 pub use ops::{
     abs, accumulator, acos, acosh, add, array, asin, asinh, atan, atan2, atanh, binary, constant,
-    cos, cosh, div, exp, flog10, flog2, iterator, mul, mul_add, powf, sin, sinh, slice, sub, sum,
-    tan, tanh, ternary, unary,
+    cos, cosh, div, eq, exp, flog10, flog2, ge, gt, iterator, le, lt, mul, mul_add, ne, powf, sin,
+    sinh, slice, sub, sum, tan, tanh, ternary, unary,
 };
 
 impl<'a, T: Elem, const N: usize, K> From<&'a mut K> for Expr<'a, T, N>
@@ -147,7 +147,7 @@ where
     }
 }
 
-impl<'a, T: Elem,const N: usize, K> From<&'a K> for Expr<'a, T, N>
+impl<'a, T: Elem, const N: usize, K> From<&'a K> for Expr<'a, T, N>
 where
     K: AsRef<[T]>,
 {
@@ -156,7 +156,7 @@ where
     }
 }
 
-impl<'a, T: Elem, const N: usize,> From<&'a [T]> for Expr<'a, T, N> {
+impl<'a, T: Elem, const N: usize> From<&'a [T]> for Expr<'a, T, N> {
     fn from(value: &'a [T]) -> Self {
         slice(value)
     }
@@ -520,6 +520,106 @@ mod test {
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i].max(0.5), out[i]));
+    }
+
+    #[test]
+    fn test_lt() {
+        // Simple case with one scalar-vector op
+        let mut rng = rng_fixed_seed();
+        let y = randn::<f64>(&mut rng, NT);
+
+        let mut xn: Expr<'_, _, 64> = constant(0.5);
+        let mut yn = array(&y);
+
+        let mut xyn = lt(&mut yn, &mut xn);
+
+        let xy = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(f64::from(y[i] < 0.5), xy[i]));
+    }
+
+    #[test]
+    fn test_le() {
+        // Simple case with one scalar-vector op
+        let mut rng = rng_fixed_seed();
+        let y = randn::<f64>(&mut rng, NT);
+
+        let mut xn: Expr<'_, _, 64> = constant(0.5);
+        let mut yn = array(&y);
+
+        let mut xyn = le(&mut yn, &mut xn);
+
+        let xy = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(f64::from(y[i] <= 0.5), xy[i]));
+    }
+
+    #[test]
+    fn test_gt() {
+        // Simple case with one scalar-vector op
+        let mut rng = rng_fixed_seed();
+        let y = randn::<f64>(&mut rng, NT);
+
+        let mut xn: Expr<'_, _, 64> = constant(0.5);
+        let mut yn = array(&y);
+
+        let mut xyn = gt(&mut yn, &mut xn);
+
+        let xy = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(f64::from(y[i] > 0.5), xy[i]));
+    }
+
+    #[test]
+    fn test_ge() {
+        // Simple case with one scalar-vector op
+        let mut rng = rng_fixed_seed();
+        let y = randn::<f64>(&mut rng, NT);
+
+        let mut xn: Expr<'_, _, 64> = constant(0.5);
+        let mut yn = array(&y);
+
+        let mut xyn = ge(&mut yn, &mut xn);
+
+        let xy = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(f64::from(y[i] >= 0.5), xy[i]));
+    }
+
+    #[test]
+    fn test_eq() {
+        // Simple case with one scalar-vector op
+        let y = Vec::from([0.0, 0.5, 1.0]);
+
+        let mut xn: Expr<'_, _, 64> = constant(0.5);
+        let mut yn = array(&y);
+
+        let mut xyn = eq(&mut yn, &mut xn);
+
+        let xy = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(f64::from(y[i] == 0.5), xy[i]));
+    }
+
+    #[test]
+    fn test_ne() {
+        // Simple case with one scalar-vector op
+        let y = Vec::from([0.0, 0.5, 1.0]);
+
+        let mut xn: Expr<'_, _, 64> = constant(0.5);
+        let mut yn = array(&y);
+
+        let mut xyn = ne(&mut yn, &mut xn);
+
+        let xy = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(f64::from(y[i] != 0.5), xy[i]));
     }
 
     #[test]

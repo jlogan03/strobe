@@ -41,7 +41,7 @@ impl<T: Elem, const N: usize> Storage<T, N> {
     }
 
     const fn size(&self) -> usize {
-        return N
+        return N;
     }
 }
 
@@ -143,7 +143,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
     }
 
     /// Evaluate the next chunk
-    /// 
+    ///
     /// # Errors
     /// * On any error in a lower-level function during evaluation
     fn next(&'a mut self) -> Result<Option<(&[T], usize)>, &'static str> {
