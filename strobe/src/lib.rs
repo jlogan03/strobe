@@ -138,15 +138,6 @@ pub use ops::{
     sinh, slice, sub, sum, tan, tanh, ternary, unary,
 };
 
-impl<'a, T: Elem, const N: usize, K> From<&'a mut K> for Expr<'a, T, N>
-where
-    K: Iterator<Item = &'a T>,
-{
-    fn from(value: &'a mut K) -> Self {
-        iterator(value)
-    }
-}
-
 impl<'a, T: Elem, const N: usize, K> From<&'a K> for Expr<'a, T, N>
 where
     K: AsRef<[T]>,
@@ -773,7 +764,7 @@ mod test {
         let yi = &mut y.iter();
 
         let mut xn: Expr<'_, _, 64> = constant(5.0);
-        let mut yn = yi.into();
+        let mut yn = iterator(yi).unwrap();
 
         let mut xyn = mul(&mut xn, &mut yn);
 

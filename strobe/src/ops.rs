@@ -42,16 +42,16 @@ pub fn array<'a, T: Elem, const N: usize>(v: &'a Array<T>) -> Expr<'a, T, N> {
 /// * If the length of the iterator is not known exactly
 pub fn iterator<'a, T: Elem, const N: usize>(
     v: &'a mut dyn Iterator<Item = &'a T>,
-) -> Expr<'a, T, N> {
+) -> Result<Expr<'a, T, N>, &'static str> {
     use Op::Iterator;
     // In order to use the iterator in a calculation that requires concrete
     // size bounds, it must have an upper bound on size, and that upper bound
     // must be equal to the lower bound
     let n = match v.size_hint() {
         (lower, Some(upper)) if lower == upper => lower,
-        _ => panic!(),
+        _ => {return Err("Iterator has unbounded size")},
     };
-    Expr::new(T::zero(), Iterator { v }, n)
+    Ok(Expr::new(T::zero(), Iterator { v }, n))
 }
 
 /// Slice identity operation. This allows the use of a slice as an input.

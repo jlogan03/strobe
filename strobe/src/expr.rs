@@ -9,6 +9,7 @@
 //! _immutable_ references to the inputs, and we can have
 //! as many of these as we like.
 use crate::{ArrayMut, Elem};
+use no_panic::no_panic;
 
 /// (1xN)-to-(1xN) elementwise array operation.
 pub trait UnaryFn<T: Elem>: Fn(&[T], &mut [T]) -> Result<(), &'static str> {}
@@ -36,6 +37,7 @@ impl<T: Elem, K: Fn(&[T], &mut T) -> Result<(), &'static str>> AccumulatorFn<T> 
 struct Storage<T: Elem, const N: usize = 64>([T; N]);
 
 impl<T: Elem, const N: usize> Storage<T, N> {
+    #[no_panic]
     fn new(v: T) -> Self {
         Self([v; N])
     }
@@ -82,6 +84,7 @@ pub struct Expr<'a, T: Elem, const N: usize = 64> {
 }
 
 impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
+    #[no_panic]
     pub(crate) fn new(v: T, op: Op<'a, T, N>, len: usize) -> Expr<'a, T, N> {
         Expr {
             storage: Storage::new(v),
@@ -137,7 +140,12 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
             let start = cursor;
             let end = start + m;
             cursor = end;
-            out[start..end].copy_from_slice(x);
+            let outslice = &mut out[start..end];
+            if outslice.len() != x.len() {
+                return Err("Size mismatch");
+            }
+            (0..m).for_each(|i| outslice[i] = x[i])
+            // outslice.copy_from_slice(x);
         }
         Ok(())
     }
@@ -146,6 +154,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
     ///
     /// # Errors
     /// * On any error in a lower-level function during evaluation
+    #[no_panic]
     fn next(&'a mut self) -> Result<Option<(&[T], usize)>, &'static str> {
         use Op::*;
         let n = self.len();
@@ -162,7 +171,19 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     let m = end - start;
                     cursor = end;
                     // Copy into local storage to make sure lifetimes line up and align is controlled
-                    self.storage.0[0..m].copy_from_slice(&v[start..end]);
+                    if self.storage.0.len() < m || v.len() < m {
+                        return Err("Size mismatch")
+                    }
+                    let storeslice = &mut self.storage.0[..m];
+                    let vslice = match v.get(start..end) {
+                        Some(x) => x,
+                        None => return Err("Size mismatch")
+                    };
+                    if storeslice.len() != vslice.len() {
+                        return Err("Size mismatch");
+                    }
+                    (0..m).for_each(|i| storeslice[i] = vslice[i]);
+                    // storeslice.copy_from_slice(vslice);
                     Some((&self.storage.0[..m], m))
                 }
             }
@@ -174,6 +195,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     let start = cursor;
                     let m = end - start;
                     cursor = end;
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch");
+                    }
                     // Copy into local storage to make sure lifetimes line up and align is controlled
                     for i in 0..m {
                         let v_inner = v.next();
@@ -193,6 +217,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                         Some(v) => v,
                     };
 
+                    if self.storage.0.is_empty() {
+                        return Err("Size mismatch")
+                    }
                     if self.storage.0[0] != v {
                         self.storage = Storage([v; N]);
                     }
@@ -203,6 +230,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
             Unary { a, f } => match a.next()? {
                 Some((x, m)) => {
                     cursor += m;
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch")
+                    }
                     f(&x[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }
@@ -212,6 +242,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                 (Some((x, p)), Some((y, q))) => {
                     let m = p.min(q);
                     cursor += m;
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch")
+                    }
                     f(&x[0..m], &y[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }
@@ -221,6 +254,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                 (Some((x, p)), Some((y, q)), Some((z, r))) => {
                     let m = p.min(q.min(r));
                     cursor += m;
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch")
+                    }
                     f(&x[0..m], &y[0..m], &z[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 strobe = { path="../strobe", default-features = false }
-# panic-never = "0.1.0"
+panic-never = "0.1.0"
 
 [profile.dev]
 panic = "abort"
