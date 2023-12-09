@@ -114,6 +114,34 @@ pub fn ternary<'a, T: Elem>(
     Expr::new(T::zero(), Ternary { a, b, c, f }, n)
 }
 
+fn min_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
+    (0..left.len()).for_each(|i| out[i] = left[i].min(right[i]));
+    Ok(())
+}
+
+/// Elementwise minimum for strictly ordered number types.
+/// For floating-point version with NaN handling, see `fmin`.
+pub fn min<'a, T: Elem + Ord>(
+    left: &'a mut Expr<'a, T>,
+    right: &'a mut Expr<'a, T>,
+) -> Expr<'a, T> {
+    binary(left, right, &min_inner)
+}
+
+fn max_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
+    (0..left.len()).for_each(|i| out[i] = left[i].max(right[i]));
+    Ok(())
+}
+
+/// Elementwise maximum for strictly ordered number types.
+/// For floating-point version with NaN handling, see `fmax`.
+pub fn max<'a, T: Elem + Ord>(
+    left: &'a mut Expr<'a, T>,
+    right: &'a mut Expr<'a, T>,
+) -> Expr<'a, T> {
+    binary(left, right, &max_inner)
+}
+
 fn add_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..left.len()).for_each(|i| out[i] = left[i] + right[i]);
     Ok(())
@@ -152,6 +180,28 @@ fn div_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 /// Elementwise division
 pub fn div<'a, T: Elem>(numer: &'a mut Expr<'a, T>, denom: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     binary(numer, denom, &div_inner)
+}
+
+fn fmin_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
+    (0..left.len()).for_each(|i| out[i] = left[i].min(right[i]));
+    Ok(())
+}
+
+/// Elementwise floating-point minimum.
+/// Ignores NaN values if either value is a number.
+pub fn fmin<'a, T: Float>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+    binary(left, right, &fmin_inner)
+}
+
+fn fmax_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
+    (0..left.len()).for_each(|i| out[i] = left[i].max(right[i]));
+    Ok(())
+}
+
+/// Elementwise floating-point maximum.
+/// Ignores NaN values if either value is a number.
+pub fn fmax<'a, T: Float>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -> Expr<'a, T> {
+    binary(left, right, &fmax_inner)
 }
 
 fn powf_inner<T: Float>(x: &[T], y: &[T], out: &mut [T]) -> Result<(), &'static str> {

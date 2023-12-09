@@ -208,6 +208,8 @@ pub(crate) mod randn {
 
 #[cfg(all(test, feature = "std"))]
 mod test {
+    use crate::ops::{fmax, fmin, max, min};
+
     use super::{expr::*, randn::*, *};
 
     /// Number of elements to use for tests
@@ -459,6 +461,68 @@ mod test {
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i].mul_add(z[i], 5.0), out[i]));
+    }
+
+    #[test]
+    fn test_min() {
+        let y: Vec<usize> = (0..NT).collect();
+
+        let mut xn = constant(1);
+        let mut yn = array(&y);
+
+        let mut xyn = min(&mut yn, &mut xn);
+
+        let out = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(y[i].min(1), out[i]));
+    }
+
+    #[test]
+    fn test_max() {
+        let y: Vec<usize> = (0..NT).collect();
+
+        let mut xn = constant(1);
+        let mut yn = array(&y);
+
+        let mut xyn = max(&mut yn, &mut xn);
+
+        let out = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(y[i].max(1), out[i]));
+    }
+
+    #[test]
+    fn test_fmin() {
+        let mut rng = rng_fixed_seed();
+        let y = randn::<f64>(&mut rng, NT);
+
+        let mut xn = constant(0.5);
+        let mut yn = array(&y);
+
+        let mut xyn = fmin(&mut yn, &mut xn);
+
+        let out = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(y[i].min(0.5), out[i]));
+    }
+
+    #[test]
+    fn test_fmax() {
+        let mut rng = rng_fixed_seed();
+        let y = randn::<f64>(&mut rng, NT);
+
+        let mut xn = constant(0.5);
+        let mut yn = array(&y);
+
+        let mut xyn = fmax(&mut yn, &mut xn);
+
+        let out = xyn.eval().unwrap();
+
+        // Make sure the values match
+        (0..y.len()).for_each(|i| assert_eq!(y[i].max(0.5), out[i]));
     }
 
     #[test]
