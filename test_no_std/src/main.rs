@@ -7,13 +7,13 @@ use core::panic::PanicInfo;
 
 use strobe::{add, array};
 
-// #[panic_handler]
-// fn panic(_info: &PanicInfo) -> ! {
-//     // We can't print, so there's not much to do here
-//     loop {}
-// }
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+    // We can't print, so there's not much to do here
+    loop {}
+}
 
-use panic_never as _;
+// use panic_never as _;
 
 #[no_mangle]
 pub fn _start() -> ! {
