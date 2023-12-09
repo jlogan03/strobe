@@ -19,7 +19,7 @@ pub fn _start() -> ! {
     let b = [1.0_f64, 2.0, 3.0, 4.0];
     let mut c = [0.0; 4];
 
-    add(&mut array(&a), &mut array(&b)).eval_into_slice(&mut c);
+    let _res = add(&mut array(&a), &mut array(&b)).eval_into_slice(&mut c);
 
     loop {} // We don't actually run this, just compile it
 }
