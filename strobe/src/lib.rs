@@ -27,7 +27,6 @@
 //! * doing single-step or small-size array operations,
 //! * or can't reasonably formulate your expression as a tree,
 //! * or can get the performance you need from a library with excellent ergonomics, like `ndarray`,
-//! * or need rigorous elimination of all panic branches,
 //! * or need absolutely the fastest and lowest-memory method possible
 //!   and are willing and able and have time to hand-vectorize your application,
 //!
