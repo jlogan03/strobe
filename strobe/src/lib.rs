@@ -102,11 +102,6 @@
 //!       unless the outside scope is guaranteed to own both the inputs and outputs.
 //! * Why abandon the more idiomatic functional programming regime at the interface?
 //!     * Same reason we don't have the standard num ops - unfortunately, this usage breaks lifetime guarantees.
-//! * Why isn't it panic-never compatible?
-//!     * In order to guarantee the lengths of the data and eliminate panic branches in slice operations,
-//!       we would need to use fixed-length input arrays and propagate those lengths with const generics.
-//!       This would give unpleasant ergonomics and, because array lengths would need to be established at
-//!       compile time, this would also prevent any useful interlanguage bindings.
 //! * Why do expressions need to be strict trees?
 //!     * Because we are strictly on the stack, and we need mutable references to each node in order to use intermediate storage,
 //!       which we need in order to allow vectorization,
