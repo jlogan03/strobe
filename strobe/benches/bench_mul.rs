@@ -58,7 +58,8 @@ fn bench_mul_2x(c: &mut Criterion) {
                         &mut mul(&mut x[..].into(), &mut x[..].into()),
                         &mut x[..].into(),
                     )
-                    .eval().unwrap(),
+                    .eval()
+                    .unwrap(),
                 )
             });
         });
@@ -136,7 +137,8 @@ fn bench_mul_3x(c: &mut Criterion) {
                         ),
                         &mut x[..].into(),
                     )
-                    .eval().unwrap(),
+                    .eval()
+                    .unwrap(),
                 )
             });
         });
@@ -224,7 +226,8 @@ fn bench_mul_4x(c: &mut Criterion) {
                         ),
                         &mut x[..].into(),
                     )
-                    .eval().unwrap(),
+                    .eval()
+                    .unwrap(),
                 )
             });
         });
