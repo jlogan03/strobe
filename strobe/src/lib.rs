@@ -52,7 +52,7 @@
 //!
 //! // Build the expression tree, then evaluate,
 //! // allocating once for the output array purely for convenience
-//! let y = mul(&mut sub(an, bn), &mut add(cn, dn)).eval();
+//! let y = mul(&mut sub(an, bn), &mut add(cn, dn)).eval().unwrap();
 //!
 //! // Check results for consistency
 //! (0..NT).for_each(|i| { assert_eq!(y[i], (a[i] - b[i]) * (c[i] + d[i]) ) });
@@ -91,8 +91,8 @@
 //! let x = [0.0_f64, 1.0, 2.0];
 //! let mut xn = array(&x);
 //!
-//! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = x[i].powi(2)}) };
-//! let xsq = unary(&mut xn, &sq_func).eval();
+//! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = x[i].powi(2)}); Ok(()) };
+//! let xsq = unary(&mut xn, &sq_func).eval().unwrap();
 //!
 //! (0..x.len()).for_each(|i| {assert_eq!(x[i] * x[i], xsq[i])});
 //! ```
@@ -219,7 +219,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = abs(&mut xn).eval();
+        let out = abs(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].abs(), out[i]));
@@ -231,7 +231,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = atanh(&mut xn).eval();
+        let out = atanh(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].atanh(), out[i]));
@@ -245,7 +245,7 @@ mod test {
         (0..NT).for_each(|i| x[i] += 1.5); // Offset to avoid comparing nan values
 
         let mut xn = array(&x);
-        let out = acosh(&mut xn).eval();
+        let out = acosh(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].acosh(), out[i]));
@@ -257,7 +257,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = asinh(&mut xn).eval();
+        let out = asinh(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].asinh(), out[i]));
@@ -269,7 +269,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = tanh(&mut xn).eval();
+        let out = tanh(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].tanh(), out[i]));
@@ -281,7 +281,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = cosh(&mut xn).eval();
+        let out = cosh(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].cosh(), out[i]));
@@ -293,7 +293,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = sinh(&mut xn).eval();
+        let out = sinh(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].sinh(), out[i]));
@@ -305,7 +305,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = atan(&mut xn).eval();
+        let out = atan(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].atan(), out[i]));
@@ -317,7 +317,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = acos(&mut xn).eval();
+        let out = acos(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].acos(), out[i]));
@@ -329,7 +329,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = asin(&mut xn).eval();
+        let out = asin(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].asin(), out[i]));
@@ -341,7 +341,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = tan(&mut xn).eval();
+        let out = tan(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].tan(), out[i]));
@@ -353,7 +353,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = cos(&mut xn).eval();
+        let out = cos(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].cos(), out[i]));
@@ -365,7 +365,7 @@ mod test {
         let mut rng = rng_fixed_seed();
         let x = randn::<f64>(&mut rng, NT);
         let mut xn = array(&x);
-        let out = sin(&mut xn).eval();
+        let out = sin(&mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].sin(), out[i]));
@@ -381,7 +381,7 @@ mod test {
         let mut xn = array(&x);
         let mut yn = array(&y);
 
-        let out = atan2(&mut yn, &mut xn).eval();
+        let out = atan2(&mut yn, &mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i].atan2(x[i]), out[i]));
@@ -395,7 +395,7 @@ mod test {
 
         let mut yn = array(&y);
 
-        let out = exp(&mut yn).eval();
+        let out = exp(&mut yn).eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i].exp(), out[i]));
@@ -409,7 +409,7 @@ mod test {
 
         let mut yn = array(&y);
 
-        let out = flog10(&mut yn).eval();
+        let out = flog10(&mut yn).eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i].log10(), out[i]));
@@ -423,7 +423,7 @@ mod test {
 
         let mut yn = array(&y);
 
-        let out = flog2(&mut yn).eval();
+        let out = flog2(&mut yn).eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i].log2(), out[i]));
@@ -438,7 +438,7 @@ mod test {
         let mut xn = constant(1.5);
         let mut yn = array(&y);
 
-        let out = powf(&mut yn, &mut xn).eval();
+        let out = powf(&mut yn, &mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i].powf(1.5), out[i]));
@@ -455,7 +455,7 @@ mod test {
         let mut yn = array(&y);
         let mut zn = array(&z);
 
-        let out = mul_add(&mut yn, &mut zn, &mut xn).eval();
+        let out = mul_add(&mut yn, &mut zn, &mut xn).eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i].mul_add(z[i], 5.0), out[i]));
@@ -472,7 +472,7 @@ mod test {
 
         let mut xyn = div(&mut yn, &mut xn);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(y[i] / 5.0, xy[i]));
@@ -489,7 +489,7 @@ mod test {
 
         let mut xyn = sub(&mut xn, &mut yn);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(5.0 - y[i], xy[i]));
@@ -506,7 +506,7 @@ mod test {
 
         let mut xyn = add(&mut xn, &mut yn);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(5.0 + y[i], xy[i]));
@@ -525,7 +525,7 @@ mod test {
         // We can't evaluate the expression because the scalar output value has
         // usize::MAX length, but we can evaluate the accumulator directly
         let xsum = match xsumn.op {
-            Op::Scalar { acc } => acc.unwrap().eval(),
+            Op::Scalar { acc } => acc.unwrap().eval().unwrap(),
             _ => panic!(),
         };
 
@@ -547,7 +547,7 @@ mod test {
         let mut xn = array(&x);
         let mut yn = array(&y);
 
-        let xsumy = mul(&mut sum(&mut xn), &mut yn).eval();
+        let xsumy = mul(&mut sum(&mut xn), &mut yn).eval().unwrap();
 
         // Make sure the values match
         //    Do the sum manually
@@ -568,7 +568,7 @@ mod test {
 
         let mut xyn = mul(&mut xn, &mut yn);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(5.0 * y[i], xy[i]));
@@ -585,7 +585,7 @@ mod test {
 
         let mut xyn = mul(&mut xn, &mut yn);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(5.0 * y[i], xy[i]));
@@ -603,7 +603,7 @@ mod test {
 
         let mut xyn = mul(&mut xn, &mut yn);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(5.0 * y[i], xy[i]));
@@ -620,7 +620,7 @@ mod test {
 
         let mut xyn = mul(&mut xn, &mut yn);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..y.len()).for_each(|i| assert_eq!(5.0 * y[i], xy[i]));
@@ -638,11 +638,12 @@ mod test {
 
         let f = |a: &[f64], b: &[f64], out: &mut [f64]| {
             (0..a.len()).for_each(|i| out[i] = a[i] * b[i]);
+            Ok(())
         };
 
         let mut xyn = binary(&mut xn, &mut yn, &f);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i] * y[i], xy[i]));
@@ -659,7 +660,7 @@ mod test {
         let mut yn = array(&y);
         let mut xyn = mul(&mut xn, &mut yn);
 
-        let xy = xyn.eval();
+        let xy = xyn.eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i] * y[i], xy[i]));
@@ -679,7 +680,7 @@ mod test {
         let mut xyn = mul(&mut xn, &mut yn);
         let mut xyzn = mul(&mut xyn, &mut zn);
 
-        let xyz = xyzn.eval();
+        let xyz = xyzn.eval().unwrap();
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i] * y[i] * z[i], xyz[i]));
@@ -702,7 +703,7 @@ mod test {
         let xyn = &mut mul(xn, yn);
         let zwn = &mut mul(zn, wn);
 
-        let xyzw = mul(xyn, zwn).eval();
+        let xyzw = mul(xyn, zwn).eval().unwrap();
 
         // Make sure the values match
         // As the expressions get more involved, we start to see roundoff differences due to ordering

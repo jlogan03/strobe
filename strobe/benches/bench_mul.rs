@@ -15,7 +15,7 @@ fn bench_mul_1x(c: &mut Criterion) {
             let mut rng = rng_fixed_seed();
             let x = randn::<f64>(&mut rng, size);
 
-            b.iter(|| black_box(mul(&mut x[..].into(), &mut x[..].into()).eval()));
+            b.iter(|| black_box(mul(&mut x[..].into(), &mut x[..].into()).eval().unwrap()));
         });
 
         group.bench_with_input(
@@ -58,7 +58,7 @@ fn bench_mul_2x(c: &mut Criterion) {
                         &mut mul(&mut x[..].into(), &mut x[..].into()),
                         &mut x[..].into(),
                     )
-                    .eval(),
+                    .eval().unwrap(),
                 )
             });
         });
@@ -136,7 +136,7 @@ fn bench_mul_3x(c: &mut Criterion) {
                         ),
                         &mut x[..].into(),
                     )
-                    .eval(),
+                    .eval().unwrap(),
                 )
             });
         });
@@ -224,7 +224,7 @@ fn bench_mul_4x(c: &mut Criterion) {
                         ),
                         &mut x[..].into(),
                     )
-                    .eval(),
+                    .eval().unwrap(),
                 )
             });
         });

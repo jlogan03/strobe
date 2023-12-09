@@ -99,7 +99,7 @@ impl<'a, T: Elem> Expr<'_, T> {
     #[cfg(feature = "std")]
     pub fn eval(&mut self) -> Result<Vec<T>, &'static str> {
         let mut out = vec![T::zero(); self.len()];
-        self.eval_into(&mut out);
+        self.eval_into(&mut out)?;
         Ok(out)
     }
 
@@ -200,7 +200,7 @@ impl<'a, T: Elem> Expr<'_, T> {
             Unary { a, f } => match a.next()? {
                 Some((x, m)) => {
                     cursor += m;
-                    f(&x[0..m], &mut self.storage.0[0..m]);
+                    f(&x[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }
                 _ => None,
@@ -209,7 +209,7 @@ impl<'a, T: Elem> Expr<'_, T> {
                 (Some((x, p)), Some((y, q))) => {
                     let m = p.min(q);
                     cursor += m;
-                    f(&x[0..m], &y[0..m], &mut self.storage.0[0..m]);
+                    f(&x[0..m], &y[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }
                 _ => None,
@@ -218,7 +218,7 @@ impl<'a, T: Elem> Expr<'_, T> {
                 (Some((x, p)), Some((y, q)), Some((z, r))) => {
                     let m = p.min(q.min(r));
                     cursor += m;
-                    f(&x[0..m], &y[0..m], &z[0..m], &mut self.storage.0[0..m]);
+                    f(&x[0..m], &y[0..m], &z[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }
                 _ => None,
@@ -251,7 +251,7 @@ impl<'a, T: Elem> Accumulator<'a, T> {
         let f = self.f;
         let mut v = self.start;
         while let Some((x, _m)) = self.a.next()? {
-            f(x, &mut v);
+            f(x, &mut v)?;
         }
 
         self.v = Some(v);

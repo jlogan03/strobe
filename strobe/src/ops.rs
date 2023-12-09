@@ -16,8 +16,8 @@
 //! let x = [0.0_f64, 1.0, 2.0];
 //! let mut xn = array(&x);  // Input expression node for x
 //!
-//! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = x[i].powi(2)}) };
-//! let xsq = unary(&mut xn, &sq_func).eval();
+//! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = x[i].powi(2)}); Ok(()) };
+//! let xsq = unary(&mut xn, &sq_func).eval().unwrap();
 //!
 //! (0..x.len()).for_each(|i| {assert_eq!(x[i] * x[i], xsq[i])});
 //! ```
@@ -114,8 +114,9 @@ pub fn ternary<'a, T: Elem>(
     Expr::new(T::zero(), Ternary { a, b, c, f }, n)
 }
 
-fn add_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) {
+fn add_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..left.len()).for_each(|i| out[i] = left[i] + right[i]);
+    Ok(())
 }
 
 /// Elementwise addition
@@ -123,8 +124,9 @@ pub fn add<'a, T: Elem>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -
     binary(left, right, &add_inner)
 }
 
-fn sub_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) {
+fn sub_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..left.len()).for_each(|i| out[i] = left[i] - right[i]);
+    Ok(())
 }
 
 /// Elementwise subtraction
@@ -132,8 +134,9 @@ pub fn sub<'a, T: Elem>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -
     binary(left, right, &sub_inner)
 }
 
-fn mul_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) {
+fn mul_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..left.len()).for_each(|i| out[i] = left[i] * right[i]);
+    Ok(())
 }
 
 /// Elementwise multiplication
@@ -141,8 +144,9 @@ pub fn mul<'a, T: Elem>(left: &'a mut Expr<'a, T>, right: &'a mut Expr<'a, T>) -
     binary(left, right, &mul_inner)
 }
 
-fn div_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) {
+fn div_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..left.len()).for_each(|i| out[i] = left[i] / right[i]);
+    Ok(())
 }
 
 /// Elementwise division
@@ -150,8 +154,9 @@ pub fn div<'a, T: Elem>(numer: &'a mut Expr<'a, T>, denom: &'a mut Expr<'a, T>) 
     binary(numer, denom, &div_inner)
 }
 
-fn powf_inner<T: Float>(x: &[T], y: &[T], out: &mut [T]) {
+fn powf_inner<T: Float>(x: &[T], y: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].powf(y[i]));
+    Ok(())
 }
 
 /// Elementwise float exponent for float types
@@ -159,8 +164,9 @@ pub fn powf<'a, T: Float>(a: &'a mut Expr<'a, T>, b: &'a mut Expr<'a, T>) -> Exp
     binary(a, b, &powf_inner)
 }
 
-fn flog2_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn flog2_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].log2());
+    Ok(())
 }
 
 /// Elementwise log base 2 for float types
@@ -168,8 +174,9 @@ pub fn flog2<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &flog2_inner)
 }
 
-fn flog10_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn flog10_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].log10());
+    Ok(())
 }
 
 /// Elementwise log base 10 for float types
@@ -177,8 +184,9 @@ pub fn flog10<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &flog10_inner)
 }
 
-fn exp_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn exp_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].exp());
+    Ok(())
 }
 
 /// Elementwise e^x for float types
@@ -186,8 +194,9 @@ pub fn exp<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &exp_inner)
 }
 
-fn atan2_inner<T: Float>(y: &[T], x: &[T], out: &mut [T]) {
+fn atan2_inner<T: Float>(y: &[T], x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = y[i].atan2(x[i]));
+    Ok(())
 }
 
 /// Elementwise atan2(y, x) for float types. Produces correct results where atan
@@ -199,8 +208,9 @@ pub fn atan2<'a, T: Float>(y: &'a mut Expr<'a, T>, x: &'a mut Expr<'a, T>) -> Ex
     binary(y, x, &atan2_inner)
 }
 
-fn sin_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn sin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].sin());
+    Ok(())
 }
 
 /// Elementwise sin(x) for float types
@@ -208,8 +218,9 @@ pub fn sin<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &sin_inner)
 }
 
-fn tan_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn tan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].tan());
+    Ok(())
 }
 
 /// Elementwise tan(x) for float types
@@ -217,8 +228,9 @@ pub fn tan<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &tan_inner)
 }
 
-fn cos_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn cos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].cos());
+    Ok(())
 }
 
 /// Elementwise cos(x) for float types
@@ -226,8 +238,9 @@ pub fn cos<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &cos_inner)
 }
 
-fn asin_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn asin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].asin());
+    Ok(())
 }
 
 /// Elementwise asin(x) for float types
@@ -235,8 +248,9 @@ pub fn asin<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &asin_inner)
 }
 
-fn acos_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn acos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].acos());
+    Ok(())
 }
 
 /// Elementwise acos(x) for float types
@@ -244,8 +258,9 @@ pub fn acos<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &acos_inner)
 }
 
-fn atan_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn atan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].atan());
+    Ok(())
 }
 
 /// Elementwise atan(x) for float types
@@ -257,8 +272,9 @@ pub fn atan<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &atan_inner)
 }
 
-fn sinh_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn sinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].sinh());
+    Ok(())
 }
 
 /// Elementwise sinh(x) for float types
@@ -266,8 +282,9 @@ pub fn sinh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &sinh_inner)
 }
 
-fn cosh_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn cosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].cosh());
+    Ok(())
 }
 
 /// Elementwise cosh(x) for float types
@@ -275,8 +292,9 @@ pub fn cosh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &cosh_inner)
 }
 
-fn tanh_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn tanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].tanh());
+    Ok(())
 }
 
 /// Elementwise tanh(x) for float types
@@ -284,8 +302,9 @@ pub fn tanh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &tanh_inner)
 }
 
-fn asinh_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn asinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].asinh());
+    Ok(())
 }
 
 /// Elementwise asinh(x) for float types
@@ -293,8 +312,9 @@ pub fn asinh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &asinh_inner)
 }
 
-fn acosh_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn acosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].acosh());
+    Ok(())
 }
 
 /// Elementwise acosh(x) for float types
@@ -302,8 +322,9 @@ pub fn acosh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &acosh_inner)
 }
 
-fn atanh_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn atanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].atanh());
+    Ok(())
 }
 
 /// Elementwise atanh(x) for float types
@@ -311,8 +332,9 @@ pub fn atanh<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &atanh_inner)
 }
 
-fn abs_inner<T: Float>(x: &[T], out: &mut [T]) {
+fn abs_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| out[i] = x[i].abs());
+    Ok(())
 }
 
 /// Elementwise abs(x) for float types
@@ -320,8 +342,14 @@ pub fn abs<'a, T: Float>(a: &'a mut Expr<'a, T>) -> Expr<'a, T> {
     unary(a, &abs_inner)
 }
 
-fn mul_add_inner<T: Elem + MulAdd<T, Output = T>>(a: &[T], b: &[T], c: &[T], out: &mut [T]) {
+fn mul_add_inner<T: Elem + MulAdd<T, Output = T>>(
+    a: &[T],
+    b: &[T],
+    c: &[T],
+    out: &mut [T],
+) -> Result<(), &'static str> {
     (0..a.len()).for_each(|i| out[i] = a[i].mul_add(b[i], c[i]));
+    Ok(())
 }
 
 /// Elementwise fused multiply-add
@@ -343,8 +371,9 @@ pub fn mul_add<'a, T: Elem + MulAdd<T, Output = T>>(
     ternary(a, b, c, &mul_add_inner)
 }
 
-fn sum_inner<T: Elem>(x: &[T], v: &mut T) {
+fn sum_inner<T: Elem>(x: &[T], v: &mut T) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| *v = *v + x[i]);
+    Ok(())
 }
 
 /// Cumulative sum of array elements.
