@@ -28,23 +28,6 @@ impl<T: Elem, K: Fn(&[T], &[T], &[T], &mut [T]) -> Result<(), &'static str>> Ter
 pub trait AccumulatorFn<T>: Fn(&[T], &mut T) -> Result<(), &'static str> {}
 impl<T: Elem, K: Fn(&[T], &mut T) -> Result<(), &'static str>> AccumulatorFn<T> for K {}
 
-/// Fixed-size and favorably aligned intermediate storage
-/// for each expression node.
-///
-/// 64 is the max align req I'm aware of as of 2023-09-09 .
-#[repr(align(64))]
-struct Storage<T: Elem, const N: usize = 64>([T; N]);
-
-impl<T: Elem, const N: usize> Storage<T, N> {
-    fn new(v: T) -> Self {
-        Self([v; N])
-    }
-
-    const fn size(&self) -> usize {
-        return N;
-    }
-}
-
 /// Operator kinds, categorized by dimensionality
 pub(crate) enum Op<'a, T: Elem, const N: usize = 64> {
     /// Array identity
@@ -259,5 +242,86 @@ impl<'a, T: Elem, const N: usize> Accumulator<'a, T, N> {
 
         self.v = Some(v);
         Ok(v)
+    }
+}
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_rust")]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_1")]
+#[repr(align(1))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_2")]
+#[repr(align(2))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_4")]
+#[repr(align(4))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_8")]
+#[repr(align(8))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_16")]
+#[repr(align(16))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_32")]
+#[repr(align(32))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_64")]
+#[repr(align(64))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_128")]
+#[repr(align(128))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_256")]
+#[repr(align(256))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_512")]
+#[repr(align(512))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+/// Fixed-size and favorably aligned intermediate storage
+/// for each expression node.
+#[cfg(feature = "align_1024")]
+#[repr(align(1024))]
+struct Storage<T: Elem, const N: usize = 64>([T; N]);
+
+impl<T: Elem, const N: usize> Storage<T, N> {
+    fn new(v: T) -> Self {
+        Self([v; N])
+    }
+
+    const fn size(&self) -> usize {
+        return N;
     }
 }

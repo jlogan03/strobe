@@ -113,6 +113,24 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 use num_traits::Num;
 
+#[cfg(not(feature = "align_selected"))]
+compile_error!(
+    "At least one alignment feature must be selected from
+        align_rust
+        align_1
+        align_2
+        align_4
+        align_8
+        align_16
+        align_32
+        align_64
+        align_128
+        align_256
+        align_512
+        align_1024
+"
+);
+
 /// Minimally-constrained numeric element
 pub trait Elem: Num + Copy {}
 impl<T: Num + Copy> Elem for T {}

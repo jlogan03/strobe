@@ -19,8 +19,34 @@ rand = "0.8.5"
 criterion = "0.5.1"
 
 [features]
-default = ["std"]
+default = ["std", "align_64"]
 std = []
+
+# Memory alignment of intermediate storage must be selected at compile time,
+# trading better throughput at larger alignment (loosely speaking)
+# against lower total stack usage at smaller alignment.
+#
+# In the worst case, each expression may need additional padding
+# of up to the total alignment bytes minus one, in order to meet
+# alignment requirements.
+#
+# As a rule of thumb, 64 bytes is a good number for application-level perf.
+# Memory-constraint embedded usages may prefer to use exactly the minimum
+# align of their vector instruction set (if any), or Rust compiler-determined
+# alignment to balance overall program perf, or a strict align(1) to reduce padding.
+align_selected = []
+align_rust = ["align_selected"]
+align_1 = ["align_selected"]
+align_2 = ["align_selected"]
+align_4 = ["align_selected"]
+align_8 = ["align_selected"]
+align_16 = ["align_selected"]
+align_32 = ["align_selected"]
+align_64 = ["align_selected"]
+align_128 = ["align_selected"]
+align_256 = ["align_selected"]
+align_512 = ["align_selected"]
+align_1024 = ["align_selected"]
 
 [[bench]]
 name = "bench_mul"
