@@ -124,7 +124,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
             let start = cursor;
             let end = start + m;
             cursor = end;
-            out[start..end].copy_from_slice(x);
+            copy_from_slice_fallible(&mut out[start..end], x)?;
         }
         Ok(())
     }
@@ -149,7 +149,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     let m = end - start;
                     cursor = end;
                     // Copy into local storage to make sure lifetimes line up and align is controlled
-                    self.storage.0[0..m].copy_from_slice(&v[start..end]);
+                    copy_from_slice_fallible(&mut self.storage.0[0..m], &v[start..end])?;
                     Some((&self.storage.0[..m], m))
                 }
             }
@@ -330,4 +330,16 @@ impl<T: Elem, const N: usize> Storage<T, N> {
     const fn size(&self) -> usize {
         N
     }
+}
+
+/// Non-panicking version of copy_from_slice
+#[inline(always)]
+fn copy_from_slice_fallible<T: Copy>(to: &mut [T], from: &[T]) -> Result<(), &'static str> {
+    let n = to.len();
+    if from.len() != n {
+        return Err("Size mismatch");
+    };
+
+    (0..n).for_each(|i| to[i] = from[i]);
+    Ok(())
 }
