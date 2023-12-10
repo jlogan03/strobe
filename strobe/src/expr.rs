@@ -10,6 +10,9 @@
 //! as many of these as we like.
 use crate::{ArrayMut, Elem};
 
+#[cfg(test)]
+use no_panic::no_panic;
+
 /// (1xN)-to-(1xN) elementwise array operation.
 pub trait UnaryFn<T: Elem>: Fn(&[T], &mut [T]) -> Result<(), &'static str> {}
 impl<T: Elem, K: Fn(&[T], &mut [T]) -> Result<(), &'static str>> UnaryFn<T> for K {}
@@ -65,6 +68,7 @@ pub struct Expr<'a, T: Elem, const N: usize = 64> {
 }
 
 impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
+    #[cfg_attr(test, no_panic)]
     pub(crate) fn new(v: T, op: Op<'a, T, N>, len: usize) -> Expr<'a, T, N> {
         Expr {
             storage: Storage::new(v),
@@ -177,7 +181,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     };
 
                     if self.storage.0[0] != v {
-                        self.storage = Storage([v; N]);
+                        self.storage = Storage::new(v);
                     }
                 };
 
@@ -218,6 +222,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
     /// The length of the output of the array expression.
     /// This inherits the minimum length of any input.
     #[allow(clippy::len_without_is_empty)]
+    #[cfg_attr(test, no_panic)]
     pub fn len(&self) -> usize {
         self.len
     }
@@ -317,6 +322,7 @@ struct Storage<T: Elem, const N: usize = 64>([T; N]);
 struct Storage<T: Elem, const N: usize = 64>([T; N]);
 
 impl<T: Elem, const N: usize> Storage<T, N> {
+    #[cfg_attr(test, no_panic)]
     fn new(v: T) -> Self {
         Self([v; N])
     }

@@ -25,7 +25,11 @@ use crate::expr::{Accumulator, AccumulatorFn, BinaryFn, Expr, Op, TernaryFn, Una
 use crate::{Array, Elem};
 use num_traits::{Float, MulAdd};
 
+#[cfg(test)]
+use no_panic::no_panic;
+
 /// Array identity operation. This allows the use of Vec, etc. as inputs.
+#[cfg_attr(test, no_panic)]
 pub fn array<'a, T: Elem, const N: usize>(v: &'a Array<T>) -> Expr<'a, T, N> {
     use Op::Array;
     Expr::new(T::zero(), Array { v: v.as_ref() }, v.as_ref().len())
@@ -38,8 +42,9 @@ pub fn array<'a, T: Elem, const N: usize>(v: &'a Array<T>) -> Expr<'a, T, N> {
 /// even if the iterator is over a contiguous array or slice. Whenever possible,
 /// it is best to provide the contiguous data directly.
 ///
-/// ## Panics
+/// ## Errors
 /// * If the length of the iterator is not known exactly
+#[cfg_attr(test, no_panic)]
 pub fn iterator<'a, T: Elem, const N: usize>(
     v: &'a mut dyn Iterator<Item = &'a T>,
 ) -> Result<Expr<'a, T, N>, &'static str> {
@@ -55,6 +60,7 @@ pub fn iterator<'a, T: Elem, const N: usize>(
 }
 
 /// Slice identity operation. This allows the use of a slice as an input.
+#[cfg_attr(test, no_panic)]
 pub fn slice<T: Elem, const N: usize>(v: &[T]) -> Expr<'_, T, N> {
     use Op::Array;
     Expr::new(T::zero(), Array { v }, v.len())
@@ -62,17 +68,20 @@ pub fn slice<T: Elem, const N: usize>(v: &[T]) -> Expr<'_, T, N> {
 
 /// A scalar identity operation is always either a constant or the
 /// output of an accumulator to be used in a downstream expression.
+#[cfg_attr(test, no_panic)]
 fn scalar<T: Elem, const N: usize>(v: T, acc: Option<Accumulator<'_, T, N>>) -> Expr<'_, T, N> {
     use Op::Scalar;
     Expr::new(v, Scalar { acc }, usize::MAX)
 }
 
 /// Constant identity operation. This allows use of a constant value as input.
+#[cfg_attr(test, no_panic)]
 pub fn constant<'a, T: Elem, const N: usize>(v: T) -> Expr<'a, T, N> {
     scalar(v, None)
 }
 
 /// Assemble an arbitrary (1xN)-to-(1x1) operation.
+#[cfg_attr(test, no_panic)]
 pub fn accumulator<'a, T: Elem, const N: usize>(
     start: T,
     a: &'a mut Expr<'a, T, N>,
@@ -87,6 +96,7 @@ pub fn accumulator<'a, T: Elem, const N: usize>(
 }
 
 /// Assemble an arbitrary (1xN)-to-(1xN) operation.
+#[cfg_attr(test, no_panic)]
 pub fn unary<'a, T: Elem, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
     f: &'a dyn UnaryFn<T>,
@@ -97,6 +107,7 @@ pub fn unary<'a, T: Elem, const N: usize>(
 }
 
 /// Assemble an arbitrary (2xN)-to-(1xN) operation.
+#[cfg_attr(test, no_panic)]
 pub fn binary<'a, T: Elem, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
     b: &'a mut Expr<'a, T, N>,
@@ -108,6 +119,7 @@ pub fn binary<'a, T: Elem, const N: usize>(
 }
 
 /// Assemble an arbitrary (3xN)-to-(1xN) operation.
+#[cfg_attr(test, no_panic)]
 pub fn ternary<'a, T: Elem, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
     b: &'a mut Expr<'a, T, N>,
@@ -119,6 +131,7 @@ pub fn ternary<'a, T: Elem, const N: usize>(
     Expr::new(T::zero(), Ternary { a, b, c, f }, n)
 }
 
+#[cfg_attr(test, no_panic)]
 fn lt_inner<T: Elem + PartialOrd>(
     left: &[T],
     right: &[T],
@@ -143,6 +156,7 @@ fn lt_inner<T: Elem + PartialOrd>(
 }
 
 /// Elementwise less-than, returning T::one() for true and T::zero() for false.
+#[cfg_attr(test, no_panic)]
 pub fn lt<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -150,6 +164,7 @@ pub fn lt<'a, T: Elem + PartialOrd, const N: usize>(
     binary(left, right, &lt_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn gt_inner<T: Elem + PartialOrd>(
     left: &[T],
     right: &[T],
@@ -174,6 +189,7 @@ fn gt_inner<T: Elem + PartialOrd>(
 }
 
 /// Elementwise greater-than, returning T::one() for true and T::zero() for false.
+#[cfg_attr(test, no_panic)]
 pub fn gt<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -181,6 +197,7 @@ pub fn gt<'a, T: Elem + PartialOrd, const N: usize>(
     binary(left, right, &gt_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn le_inner<T: Elem + PartialOrd>(
     left: &[T],
     right: &[T],
@@ -205,6 +222,7 @@ fn le_inner<T: Elem + PartialOrd>(
 }
 
 /// Elementwise less-than-or-equal, returning T::one() for true and T::zero() for false.
+#[cfg_attr(test, no_panic)]
 pub fn le<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -212,6 +230,7 @@ pub fn le<'a, T: Elem + PartialOrd, const N: usize>(
     binary(left, right, &le_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn ge_inner<T: Elem + PartialOrd>(
     left: &[T],
     right: &[T],
@@ -236,6 +255,7 @@ fn ge_inner<T: Elem + PartialOrd>(
 }
 
 /// Elementwise greater-than-or-equal, returning T::one() for true and T::zero() for false.
+#[cfg_attr(test, no_panic)]
 pub fn ge<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -243,6 +263,7 @@ pub fn ge<'a, T: Elem + PartialOrd, const N: usize>(
     binary(left, right, &ge_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn eq_inner<T: Elem + PartialOrd>(
     left: &[T],
     right: &[T],
@@ -267,6 +288,7 @@ fn eq_inner<T: Elem + PartialOrd>(
 }
 
 /// Elementwise equals, returning T::one() for true and T::zero() for false.
+#[cfg_attr(test, no_panic)]
 pub fn eq<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -274,6 +296,7 @@ pub fn eq<'a, T: Elem + PartialOrd, const N: usize>(
     binary(left, right, &eq_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn ne_inner<T: Elem + PartialOrd>(
     left: &[T],
     right: &[T],
@@ -298,6 +321,7 @@ fn ne_inner<T: Elem + PartialOrd>(
 }
 
 /// Elementwise not-equal, returning T::one() for true and T::zero() for false.
+#[cfg_attr(test, no_panic)]
 pub fn ne<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -305,6 +329,7 @@ pub fn ne<'a, T: Elem + PartialOrd, const N: usize>(
     binary(left, right, &ne_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn min_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -319,6 +344,7 @@ fn min_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<()
 
 /// Elementwise minimum for strictly ordered number types.
 /// For floating-point version with NaN handling, see `fmin`.
+#[cfg_attr(test, no_panic)]
 pub fn min<'a, T: Elem + Ord, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -326,6 +352,7 @@ pub fn min<'a, T: Elem + Ord, const N: usize>(
     binary(left, right, &min_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn max_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -340,6 +367,7 @@ fn max_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<()
 
 /// Elementwise maximum for strictly ordered number types.
 /// For floating-point version with NaN handling, see `fmax`.
+#[cfg_attr(test, no_panic)]
 pub fn max<'a, T: Elem + Ord, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -347,6 +375,7 @@ pub fn max<'a, T: Elem + Ord, const N: usize>(
     binary(left, right, &max_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn add_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -360,6 +389,7 @@ fn add_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise addition
+#[cfg_attr(test, no_panic)]
 pub fn add<'a, T: Elem, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -367,6 +397,7 @@ pub fn add<'a, T: Elem, const N: usize>(
     binary(left, right, &add_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn sub_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -380,6 +411,7 @@ fn sub_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise subtraction
+#[cfg_attr(test, no_panic)]
 pub fn sub<'a, T: Elem, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -387,6 +419,7 @@ pub fn sub<'a, T: Elem, const N: usize>(
     binary(left, right, &sub_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn mul_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -400,6 +433,7 @@ fn mul_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise multiplication
+#[cfg_attr(test, no_panic)]
 pub fn mul<'a, T: Elem, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -407,6 +441,7 @@ pub fn mul<'a, T: Elem, const N: usize>(
     binary(left, right, &mul_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn div_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -420,6 +455,7 @@ fn div_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'st
 }
 
 /// Elementwise division
+#[cfg_attr(test, no_panic)]
 pub fn div<'a, T: Elem, const N: usize>(
     numer: &'a mut Expr<'a, T, N>,
     denom: &'a mut Expr<'a, T, N>,
@@ -427,6 +463,7 @@ pub fn div<'a, T: Elem, const N: usize>(
     binary(numer, denom, &div_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn fmin_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -441,6 +478,7 @@ fn fmin_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'
 
 /// Elementwise floating-point minimum.
 /// Ignores NaN values if either value is a number.
+#[cfg_attr(test, no_panic)]
 pub fn fmin<'a, T: Float, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -448,6 +486,7 @@ pub fn fmin<'a, T: Float, const N: usize>(
     binary(left, right, &fmin_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn fmax_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -462,6 +501,7 @@ fn fmax_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'
 
 /// Elementwise floating-point maximum.
 /// Ignores NaN values if either value is a number.
+#[cfg_attr(test, no_panic)]
 pub fn fmax<'a, T: Float, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
@@ -469,6 +509,7 @@ pub fn fmax<'a, T: Float, const N: usize>(
     binary(left, right, &fmax_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn powf_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -482,6 +523,7 @@ fn powf_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'
 }
 
 /// Elementwise float exponent for float types
+#[cfg_attr(test, no_panic)]
 pub fn powf<'a, T: Float, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
     b: &'a mut Expr<'a, T, N>,
@@ -489,6 +531,7 @@ pub fn powf<'a, T: Float, const N: usize>(
     binary(a, b, &powf_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn flog2_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -502,10 +545,12 @@ fn flog2_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise log base 2 for float types
+#[cfg_attr(test, no_panic)]
 pub fn flog2<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &flog2_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn flog10_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -519,10 +564,12 @@ fn flog10_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise log base 10 for float types
+#[cfg_attr(test, no_panic)]
 pub fn flog10<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &flog10_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn exp_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -536,10 +583,12 @@ fn exp_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise e^x for float types
+#[cfg_attr(test, no_panic)]
 pub fn exp<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &exp_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn atan2_inner<T: Float>(y: &[T], x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -557,6 +606,7 @@ fn atan2_inner<T: Float>(y: &[T], x: &[T], out: &mut [T]) -> Result<(), &'static
 ///
 /// In accordance with tradition, the inputs are taken in (`y`, `x`) order
 /// and evaluated like `y.atan2(x)`.
+#[cfg_attr(test, no_panic)]
 pub fn atan2<'a, T: Float, const N: usize>(
     y: &'a mut Expr<'a, T, N>,
     x: &'a mut Expr<'a, T, N>,
@@ -564,6 +614,7 @@ pub fn atan2<'a, T: Float, const N: usize>(
     binary(y, x, &atan2_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn sin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -577,10 +628,12 @@ fn sin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise sin(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn sin<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &sin_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn tan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -594,10 +647,12 @@ fn tan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise tan(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn tan<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &tan_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn cos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -611,10 +666,12 @@ fn cos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise cos(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn cos<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &cos_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn asin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -628,10 +685,12 @@ fn asin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise asin(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn asin<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &asin_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn acos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -645,10 +704,12 @@ fn acos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise acos(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn acos<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &acos_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn atan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -666,10 +727,12 @@ fn atan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// This function will produce erroneous results near multiple of pi/2.
 /// For a version that maintains correctness near singularities in tan(x),
 /// see `atan2`.
+#[cfg_attr(test, no_panic)]
 pub fn atan<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &atan_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn sinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -683,10 +746,12 @@ fn sinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise sinh(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn sinh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &sinh_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn cosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -700,10 +765,12 @@ fn cosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise cosh(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn cosh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &cosh_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn tanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -717,6 +784,7 @@ fn tanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise tanh(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn tanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &tanh_inner)
 }
@@ -734,10 +802,16 @@ fn asinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise asinh(x) for float types
+/// 
+/// # Panics
+/// * The inner function that applies the asinh() function to
+///   individual elements can panic!
+#[cfg_attr(test, no_panic)]
 pub fn asinh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &asinh_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn acosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -751,10 +825,12 @@ fn acosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise acosh(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn acosh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &acosh_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn atanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -768,10 +844,12 @@ fn atanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise atanh(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn atanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &atanh_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn abs_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
     let n = out.len();
@@ -785,10 +863,12 @@ fn abs_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 }
 
 /// Elementwise abs(x) for float types
+#[cfg_attr(test, no_panic)]
 pub fn abs<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &abs_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn mul_add_inner<T: Elem + MulAdd<T, Output = T>>(
     a: &[T],
     b: &[T],
@@ -817,6 +897,7 @@ fn mul_add_inner<T: Elem + MulAdd<T, Output = T>>(
 /// However, if the compilation target does _not_ support FMA
 /// or if FMA is not enabled, this will be much slower than a
 /// separate multiply and add, because it will not vectorize.
+#[cfg_attr(test, no_panic)]
 pub fn mul_add<'a, T: Elem + MulAdd<T, Output = T>, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
     b: &'a mut Expr<'a, T, N>,
@@ -825,6 +906,7 @@ pub fn mul_add<'a, T: Elem + MulAdd<T, Output = T>, const N: usize>(
     ternary(a, b, c, &mul_add_inner)
 }
 
+#[cfg_attr(test, no_panic)]
 fn sum_inner<T: Elem>(x: &[T], v: &mut T) -> Result<(), &'static str> {
     (0..x.len()).for_each(|i| *v = *v + x[i]);
     Ok(())
@@ -834,6 +916,7 @@ fn sum_inner<T: Elem>(x: &[T], v: &mut T) -> Result<(), &'static str> {
 ///
 /// Note that while it is allowed, applying this to an expression with
 /// a scalar operation will produce meaningless results.
+#[cfg_attr(test, no_panic)]
 pub fn sum<'a, T: Elem, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     let acc = Some(accumulator(T::zero(), a, &sum_inner));
     scalar(T::zero(), acc)

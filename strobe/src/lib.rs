@@ -113,6 +113,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 use num_traits::Num;
 
+#[cfg(test)]
+use no_panic::no_panic;
+
 #[cfg(not(feature = "align_selected"))]
 compile_error!(
     "At least one alignment feature must be selected from
@@ -155,12 +158,14 @@ impl<'a, T: Elem, const N: usize, K> From<&'a K> for Expr<'a, T, N>
 where
     K: AsRef<[T]>,
 {
+    #[cfg_attr(test, no_panic)]
     fn from(value: &'a K) -> Self {
         array(value)
     }
 }
 
 impl<'a, T: Elem, const N: usize> From<&'a [T]> for Expr<'a, T, N> {
+    #[cfg_attr(test, no_panic)]
     fn from(value: &'a [T]) -> Self {
         slice(value)
     }

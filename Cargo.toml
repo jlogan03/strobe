@@ -9,3 +9,13 @@ resolver = "2"
 opt-level = 3
 codegen-units = 1
 lto = true
+debug-assertions = false
+overflow-checks = false
+strip = true
+
+[profile.dev]
+# Some optimization is required
+# to pass no_panic checks
+opt-level = 3
+codegen-units = 1
+lto = true
