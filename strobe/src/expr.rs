@@ -322,6 +322,6 @@ impl<T: Elem, const N: usize> Storage<T, N> {
     }
 
     const fn size(&self) -> usize {
-        return N;
+        N
     }
 }

@@ -709,7 +709,7 @@ mod test {
 
         // Make sure the values match
         let mut v = 0.0;
-        (0..x.len()).for_each(|i| v = v + x[i]);
+        (0..x.len()).for_each(|i| v += x[i]);
 
         assert_eq!(xsum, v);
     }
@@ -730,7 +730,7 @@ mod test {
         // Make sure the values match
         //    Do the sum manually
         let mut v = 0.0;
-        (0..x.len()).for_each(|i| v = v + x[i]);
+        (0..x.len()).for_each(|i| v += x[i]);
         //    Compare
         (0..x.len()).for_each(|i| assert_eq!(y[i] * v, xsumy[i]));
     }
