@@ -13,13 +13,15 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
+// use panic_never as _;
+
 #[no_mangle]
 pub fn _start() -> ! {
     let a = [1.0_f64, 2.0, 3.0, 4.0];
     let b = [1.0_f64, 2.0, 3.0, 4.0];
     let mut c = [0.0; 4];
 
-    add(&mut array(&a), &mut array(&b)).eval_into_slice(&mut c);
+    let _res = add::<_, 8>(&mut array(&a), &mut array(&b)).eval_into_slice(&mut c);
 
     loop {} // We don't actually run this, just compile it
 }
