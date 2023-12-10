@@ -133,6 +133,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
     ///
     /// # Errors
     /// * On any error in a lower-level function during evaluation
+    // #[cfg_attr(test, no_panic)]
     fn next(&'a mut self) -> Result<Option<(&[T], usize)>, &'static str> {
         use Op::*;
         let n = self.len();
@@ -148,6 +149,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     let start = cursor;
                     let m = end - start;
                     cursor = end;
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch")
+                    }
                     // Copy into local storage to make sure lifetimes line up and align is controlled
                     copy_from_slice_fallible(&mut self.storage.0[0..m], &v[start..end])?;
                     Some((&self.storage.0[..m], m))
@@ -161,6 +165,10 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     let start = cursor;
                     let m = end - start;
                     cursor = end;
+
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch")
+                    }
                     // Copy into local storage to make sure lifetimes line up and align is controlled
                     for i in 0..m {
                         let v_inner = v.next();
@@ -180,6 +188,10 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                         Some(v) => v,
                     };
 
+                    if self.storage.0.is_empty() {
+                        return Err("Size mismatch")
+                    }
+
                     if self.storage.0[0] != v {
                         self.storage = Storage::new(v);
                     }
@@ -190,6 +202,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
             Unary { a, f } => match a.next()? {
                 Some((x, m)) => {
                     cursor += m;
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch")
+                    }
                     f(&x[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }
@@ -199,6 +214,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                 (Some((x, p)), Some((y, q))) => {
                     let m = p.min(q);
                     cursor += m;
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch")
+                    }
                     f(&x[0..m], &y[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }
@@ -208,6 +226,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                 (Some((x, p)), Some((y, q)), Some((z, r))) => {
                     let m = p.min(q.min(r));
                     cursor += m;
+                    if self.storage.0.len() < m {
+                        return Err("Size mismatch")
+                    }
                     f(&x[0..m], &y[0..m], &z[0..m], &mut self.storage.0[0..m])?;
                     Some((&self.storage.0[0..m], m))
                 }
@@ -332,8 +353,9 @@ impl<T: Elem, const N: usize> Storage<T, N> {
     }
 }
 
-/// Non-panicking version of copy_from_slice
-#[inline(always)]
+/// Non-panicking, inlined version of copy_from_slice
+#[cfg_attr(test, no_panic)]
+#[inline]
 fn copy_from_slice_fallible<T: Copy>(to: &mut [T], from: &[T]) -> Result<(), &'static str> {
     let n = to.len();
     if from.len() != n {
