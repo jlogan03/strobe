@@ -83,7 +83,7 @@ fn bench_mul_2x(c: &mut Criterion) {
                 b.iter(|| {
                     black_box({
                         (0..size).for_each(|i| xy[i] = x[i] * y[i]);
-                        
+
                         (0..size).map(|i| xy[i] * z[i]).collect::<Vec<_>>()
                     })
                 });
@@ -102,7 +102,7 @@ fn bench_mul_2x(c: &mut Criterion) {
                 b.iter(|| {
                     black_box({
                         let xy = (0..size).map(|i| x[i] * y[i]).collect::<Vec<_>>();
-                        
+
                         (0..size).map(|i| xy[i] * z[i]).collect::<Vec<_>>()
                     })
                 });
@@ -161,7 +161,7 @@ fn bench_mul_3x(c: &mut Criterion) {
                     black_box({
                         (0..size).for_each(|i| xy[i] = x[i] * y[i]);
                         (0..size).for_each(|i| xyz[i] = xy[i] * z[i]);
-                        
+
                         (0..size).map(|i| xyz[i] * w[i]).collect::<Vec<_>>()
                     })
                 });
@@ -182,7 +182,7 @@ fn bench_mul_3x(c: &mut Criterion) {
                     black_box({
                         let xy = (0..size).map(|i| x[i] * y[i]).collect::<Vec<_>>();
                         let xyz = (0..size).map(|i| xy[i] * z[i]).collect::<Vec<_>>();
-                        
+
                         (0..size).map(|i| xyz[i] * w[i]).collect::<Vec<_>>()
                     })
                 });
@@ -248,7 +248,7 @@ fn bench_mul_4x(c: &mut Criterion) {
                         (0..size).for_each(|i| xy[i] = x[i] * y[i]);
                         (0..size).for_each(|i| xyz[i] = xy[i] * z[i]);
                         (0..size).for_each(|i| xyzw[i] = xyz[i] * w[i]);
-                        
+
                         (0..size).map(|i| xyzw[i] * v[i]).collect::<Vec<_>>()
                     })
                 });
@@ -271,7 +271,7 @@ fn bench_mul_4x(c: &mut Criterion) {
                         let xy = (0..size).map(|i| x[i] * y[i]).collect::<Vec<_>>();
                         let xyz = (0..size).map(|i| xy[i] * z[i]).collect::<Vec<_>>();
                         let xyzw = (0..size).map(|i| xyz[i] * w[i]).collect::<Vec<_>>();
-                        
+
                         (0..size).map(|i| xyzw[i] * v[i]).collect::<Vec<_>>()
                     })
                 });
