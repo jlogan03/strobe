@@ -31,7 +31,7 @@ std = []
 # alignment requirements.
 #
 # As a rule of thumb, 64 bytes is a good number for application-level perf.
-# Memory-constraint embedded usages may prefer to use exactly the minimum
+# Memory-constrained embedded usages may prefer to use exactly the minimum
 # align of their vector instruction set (if any), or Rust compiler-determined
 # alignment to balance overall program perf, or a strict align(1) to reduce padding.
 align_selected = []
