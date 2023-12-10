@@ -149,7 +149,7 @@ pub mod ops;
 pub use expr::{AccumulatorFn, BinaryFn, Expr, TernaryFn, UnaryFn};
 
 pub use ops::{
-    abs, accumulator, acos, acosh, add, array, asin, asinh, atan, atan2, atanh, binary, constant,
+    abs, accumulator, acos, acosh, add, array, asin, atan, atan2, atanh, binary, constant,
     cos, cosh, div, eq, exp, flog10, flog2, ge, gt, iterator, le, lt, mul, mul_add, ne, powf, sin,
     sinh, slice, sub, sum, tan, tanh, ternary, unary,
 };
@@ -270,18 +270,6 @@ mod test {
 
         // Make sure the values match
         (0..x.len()).for_each(|i| assert_eq!(x[i].acosh(), out[i]));
-    }
-
-    #[test]
-    fn test_asinh() {
-        // Simple case with depth one
-        let mut rng = rng_fixed_seed();
-        let x = randn::<f64>(&mut rng, NT);
-        let mut xn: Expr<'_, _, 64> = array(&x);
-        let out = asinh(&mut xn).eval().unwrap();
-
-        // Make sure the values match
-        (0..x.len()).for_each(|i| assert_eq!(x[i].asinh(), out[i]));
     }
 
     #[test]

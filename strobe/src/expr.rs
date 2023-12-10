@@ -124,6 +124,9 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
             let start = cursor;
             let end = start + m;
             cursor = end;
+            if out.len() < end {
+                return Err("Size mismatch")
+            }
             copy_from_slice_fallible(&mut out[start..end], x)?;
         }
         Ok(())
@@ -259,6 +262,7 @@ pub struct Accumulator<'a, T: Elem, const N: usize = 64> {
 
 impl<'a, T: Elem, const N: usize> Accumulator<'a, T, N> {
     /// Evaluate the input expression and accumulate the output values.
+    #[cfg_attr(test, no_panic)]
     pub fn eval(&mut self) -> Result<T, &'static str> {
         let f = self.f;
         let mut v = self.start;

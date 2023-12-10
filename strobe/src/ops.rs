@@ -21,6 +21,9 @@
 //!
 //! (0..x.len()).for_each(|i| {assert_eq!(x[i] * x[i], xsq[i])});
 //! ```
+//! 
+//! Note `asinh` is specifically _not_ implemented here because it contains
+//! unresolvable panic branches.
 use crate::expr::{Accumulator, AccumulatorFn, BinaryFn, Expr, Op, TernaryFn, UnaryFn};
 use crate::{Array, Elem};
 use num_traits::{Float, MulAdd};
@@ -787,28 +790,6 @@ fn tanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 #[cfg_attr(test, no_panic)]
 pub fn tanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
     unary(a, &tanh_inner)
-}
-
-fn asinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
-    // Check sizes
-    let n = out.len();
-    if x.len() != n {
-        return Err("Size mismatch");
-    };
-
-    // Execute
-    (0..n).for_each(|i| out[i] = x[i].asinh());
-    Ok(())
-}
-
-/// Elementwise asinh(x) for float types
-/// 
-/// # Panics
-/// * The inner function that applies the asinh() function to
-///   individual elements can panic!
-#[cfg_attr(test, no_panic)]
-pub fn asinh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &asinh_inner)
 }
 
 #[cfg_attr(test, no_panic)]
