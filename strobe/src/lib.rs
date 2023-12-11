@@ -91,7 +91,7 @@
 //! let mut xn: Expr<'_, _, 64> = array(&x);
 //!
 //! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = x[i].powi(2)}); Ok(()) };
-//! let xsq = unary(&mut xn, &sq_func).eval().unwrap();
+//! let xsq = unary(&mut xn, sq_func).eval().unwrap();
 //!
 //! (0..x.len()).for_each(|i| {assert_eq!(x[i] * x[i], xsq[i])});
 //! ```
@@ -812,7 +812,7 @@ mod test {
             Ok(())
         };
 
-        let mut xyn = binary(&mut xn, &mut yn, &f);
+        let mut xyn = binary(&mut xn, &mut yn, f);
 
         let xy = xyn.eval().unwrap();
 

@@ -88,7 +88,7 @@ pub fn constant<'a, T: Elem, const N: usize>(v: T) -> Expr<'a, T, N> {
 pub fn accumulator<'a, T: Elem, const N: usize>(
     start: T,
     a: &'a mut Expr<'a, T, N>,
-    f: &'a dyn AccumulatorFn<T>,
+    f: AccumulatorFn<T>,
 ) -> Accumulator<'a, T, N> {
     Accumulator {
         v: None,
@@ -102,7 +102,7 @@ pub fn accumulator<'a, T: Elem, const N: usize>(
 #[cfg_attr(test, no_panic)]
 pub fn unary<'a, T: Elem, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
-    f: &'a dyn UnaryFn<T>,
+    f: UnaryFn<T>,
 ) -> Expr<'a, T, N> {
     use Op::Unary;
     let n = a.len();
@@ -114,7 +114,7 @@ pub fn unary<'a, T: Elem, const N: usize>(
 pub fn binary<'a, T: Elem, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
     b: &'a mut Expr<'a, T, N>,
-    f: &'a dyn BinaryFn<T>,
+    f: BinaryFn<T>,
 ) -> Expr<'a, T, N> {
     use Op::Binary;
     let n = a.len().min(b.len());
@@ -127,7 +127,7 @@ pub fn ternary<'a, T: Elem, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
     b: &'a mut Expr<'a, T, N>,
     c: &'a mut Expr<'a, T, N>,
-    f: &'a dyn TernaryFn<T>,
+    f: TernaryFn<T>,
 ) -> Expr<'a, T, N> {
     use Op::Ternary;
     let n = a.len().min(b.len().min(c.len()));
@@ -164,7 +164,7 @@ pub fn lt<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &lt_inner)
+    binary(left, right, lt_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -197,7 +197,7 @@ pub fn gt<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &gt_inner)
+    binary(left, right, gt_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -230,7 +230,7 @@ pub fn le<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &le_inner)
+    binary(left, right, le_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -263,7 +263,7 @@ pub fn ge<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &ge_inner)
+    binary(left, right, ge_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -296,7 +296,7 @@ pub fn eq<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &eq_inner)
+    binary(left, right, eq_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -329,7 +329,7 @@ pub fn ne<'a, T: Elem + PartialOrd, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &ne_inner)
+    binary(left, right, ne_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -352,7 +352,7 @@ pub fn min<'a, T: Elem + Ord, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &min_inner)
+    binary(left, right, min_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -375,7 +375,7 @@ pub fn max<'a, T: Elem + Ord, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &max_inner)
+    binary(left, right, max_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -397,7 +397,7 @@ pub fn add<'a, T: Elem, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &add_inner)
+    binary(left, right, add_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -419,7 +419,7 @@ pub fn sub<'a, T: Elem, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &sub_inner)
+    binary(left, right, sub_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -441,7 +441,7 @@ pub fn mul<'a, T: Elem, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &mul_inner)
+    binary(left, right, mul_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -463,7 +463,7 @@ pub fn div<'a, T: Elem, const N: usize>(
     numer: &'a mut Expr<'a, T, N>,
     denom: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(numer, denom, &div_inner)
+    binary(numer, denom, div_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -486,7 +486,7 @@ pub fn fmin<'a, T: Float, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &fmin_inner)
+    binary(left, right, fmin_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -509,7 +509,7 @@ pub fn fmax<'a, T: Float, const N: usize>(
     left: &'a mut Expr<'a, T, N>,
     right: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(left, right, &fmax_inner)
+    binary(left, right, fmax_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -531,7 +531,7 @@ pub fn powf<'a, T: Float, const N: usize>(
     a: &'a mut Expr<'a, T, N>,
     b: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(a, b, &powf_inner)
+    binary(a, b, powf_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -550,7 +550,7 @@ fn flog2_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise log base 2 for float types
 #[cfg_attr(test, no_panic)]
 pub fn flog2<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &flog2_inner)
+    unary(a, flog2_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -569,7 +569,7 @@ fn flog10_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise log base 10 for float types
 #[cfg_attr(test, no_panic)]
 pub fn flog10<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &flog10_inner)
+    unary(a, flog10_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -588,7 +588,7 @@ fn exp_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise e^x for float types
 #[cfg_attr(test, no_panic)]
 pub fn exp<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &exp_inner)
+    unary(a, exp_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -614,7 +614,7 @@ pub fn atan2<'a, T: Float, const N: usize>(
     y: &'a mut Expr<'a, T, N>,
     x: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    binary(y, x, &atan2_inner)
+    binary(y, x, atan2_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -633,7 +633,7 @@ fn sin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise sin(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn sin<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &sin_inner)
+    unary(a, sin_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -652,7 +652,7 @@ fn tan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise tan(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn tan<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &tan_inner)
+    unary(a, tan_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -671,7 +671,7 @@ fn cos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise cos(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn cos<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &cos_inner)
+    unary(a, cos_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -690,7 +690,7 @@ fn asin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise asin(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn asin<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &asin_inner)
+    unary(a, asin_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -709,7 +709,7 @@ fn acos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise acos(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn acos<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &acos_inner)
+    unary(a, acos_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -732,7 +732,7 @@ fn atan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// see `atan2`.
 #[cfg_attr(test, no_panic)]
 pub fn atan<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &atan_inner)
+    unary(a, atan_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -751,7 +751,7 @@ fn sinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise sinh(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn sinh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &sinh_inner)
+    unary(a, sinh_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -770,7 +770,7 @@ fn cosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise cosh(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn cosh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &cosh_inner)
+    unary(a, cosh_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -789,7 +789,7 @@ fn tanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise tanh(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn tanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &tanh_inner)
+    unary(a, tanh_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -808,7 +808,7 @@ fn acosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise acosh(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn acosh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &acosh_inner)
+    unary(a, acosh_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -827,7 +827,7 @@ fn atanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise atanh(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn atanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &atanh_inner)
+    unary(a, atanh_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -846,7 +846,7 @@ fn abs_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
 /// Elementwise abs(x) for float types
 #[cfg_attr(test, no_panic)]
 pub fn abs<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    unary(a, &abs_inner)
+    unary(a, abs_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -884,7 +884,7 @@ pub fn mul_add<'a, T: Elem + MulAdd<T, Output = T>, const N: usize>(
     b: &'a mut Expr<'a, T, N>,
     c: &'a mut Expr<'a, T, N>,
 ) -> Expr<'a, T, N> {
-    ternary(a, b, c, &mul_add_inner)
+    ternary(a, b, c, mul_add_inner)
 }
 
 #[cfg_attr(test, no_panic)]
@@ -899,6 +899,6 @@ fn sum_inner<T: Elem>(x: &[T], v: &mut T) -> Result<(), &'static str> {
 /// a scalar operation will produce meaningless results.
 #[cfg_attr(test, no_panic)]
 pub fn sum<'a, T: Elem, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, T, N> {
-    let acc = Some(accumulator(T::zero(), a, &sum_inner));
+    let acc = Some(accumulator(T::zero(), a, sum_inner));
     scalar(T::zero(), acc)
 }

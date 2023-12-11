@@ -14,22 +14,18 @@ use crate::{ArrayMut, Elem};
 use no_panic::no_panic;
 
 /// (1xN)-to-(1xN) elementwise array operation.
-pub trait UnaryFn<T: Elem>: Fn(&[T], &mut [T]) -> Result<(), &'static str> {}
-impl<T: Elem, K: Fn(&[T], &mut [T]) -> Result<(), &'static str>> UnaryFn<T> for K {}
+pub type UnaryFn<T> = fn(&[T], &mut [T]) -> Result<(), &'static str>;
 
 /// (2xN)-to-(1xN) elementwise array operation.
-pub trait BinaryFn<T: Elem>: Fn(&[T], &[T], &mut [T]) -> Result<(), &'static str> {}
-impl<T: Elem, K: Fn(&[T], &[T], &mut [T]) -> Result<(), &'static str>> BinaryFn<T> for K {}
+pub type BinaryFn<T> = fn(&[T], &[T], &mut [T]) -> Result<(), &'static str>;
 
 /// (3xN)-to-(1xN) elementwise array operation
 /// such as fused multiply-add.
-pub trait TernaryFn<T>: Fn(&[T], &[T], &[T], &mut [T]) -> Result<(), &'static str> {}
-impl<T: Elem, K: Fn(&[T], &[T], &[T], &mut [T]) -> Result<(), &'static str>> TernaryFn<T> for K {}
+pub type TernaryFn<T> = fn(&[T], &[T], &[T], &mut [T]) -> Result<(), &'static str>;
 
 /// (1xN)-to-(1x1) incremental-evaluation operation
 /// such as a cumulative sum or product.
-pub trait AccumulatorFn<T>: Fn(&[T], &mut T) -> Result<(), &'static str> {}
-impl<T: Elem, K: Fn(&[T], &mut T) -> Result<(), &'static str>> AccumulatorFn<T> for K {}
+pub type AccumulatorFn<T> = fn(&[T], &mut T) -> Result<(), &'static str>;
 
 /// Operator kinds, categorized by dimensionality
 pub(crate) enum Op<'a, T: Elem, const N: usize = 64> {
@@ -43,18 +39,18 @@ pub(crate) enum Op<'a, T: Elem, const N: usize = 64> {
     Scalar { acc: Option<Accumulator<'a, T, N>> },
     Unary {
         a: &'a mut Expr<'a, T, N>,
-        f: &'a dyn UnaryFn<T>,
+        f: UnaryFn<T>,
     },
     Binary {
         a: &'a mut Expr<'a, T, N>,
         b: &'a mut Expr<'a, T, N>,
-        f: &'a dyn BinaryFn<T>,
+        f: BinaryFn<T>,
     },
     Ternary {
         a: &'a mut Expr<'a, T, N>,
         b: &'a mut Expr<'a, T, N>,
         c: &'a mut Expr<'a, T, N>,
-        f: &'a dyn TernaryFn<T>,
+        f: TernaryFn<T>,
     },
 }
 
@@ -257,7 +253,7 @@ pub struct Accumulator<'a, T: Elem, const N: usize = 64> {
     pub(crate) v: Option<T>,
     pub(crate) start: T,
     pub(crate) a: &'a mut Expr<'a, T, N>,
-    pub(crate) f: &'a dyn AccumulatorFn<T>,
+    pub(crate) f: AccumulatorFn<T>,
 }
 
 impl<'a, T: Elem, const N: usize> Accumulator<'a, T, N> {
