@@ -143,14 +143,16 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                 } else {
                     let end = n.min(self.cursor + nstore);
                     let start = cursor;
-                    let m = end - start;
+                    let m = end.saturating_sub(start);
                     cursor = end;
                     if self.storage.0.len() < m || v.len() < end || start > end {
                         return Err("Size mismatch");
                     }
                     // Copy into local storage to make sure lifetimes line up and align is controlled
-                    copy_from_slice_fallible(&mut self.storage.0[..m], &v[start..end])?;
-                    Some((&self.storage.0[..m], m))
+                    let vslice = get_from_slice_fallible(&v, start..end)?;
+                    copy_from_slice_fallible(&mut self.storage.0, vslice)?;
+                    let used_storage = get_from_slice_fallible(&self.storage.0, ..m)?;
+                    Some((used_storage, m))
                 }
             }
             Scalar { acc } => {
@@ -205,7 +207,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     f(&x[..m], &y[..m], &z[..m], &mut self.storage.0[..m])?;
                     Some((&self.storage.0[..m], m))
                 }
-                _ => None,
+                // _ => None,
             },
         };
 
