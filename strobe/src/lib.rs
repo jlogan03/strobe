@@ -90,7 +90,7 @@
 //! let x = [0.0_f64, 1.0, 2.0];
 //! let mut xn: Expr<'_, _, 64> = array(&x);
 //!
-//! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = x[i].powi(2)}); Ok(()) };
+//! let sq_func = |a: &[f64], out: &mut [f64]| { (0..a.len()).for_each(|i| {out[i] = a[i].powi(2)}); Ok(()) };
 //! let xsq = unary(&mut xn, sq_func).eval().unwrap();
 //!
 //! (0..x.len()).for_each(|i| {assert_eq!(x[i] * x[i], xsq[i])});
