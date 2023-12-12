@@ -31,10 +31,6 @@ pub type AccumulatorFn<T> = fn(&[T], &mut T) -> Result<(), &'static str>;
 pub(crate) enum Op<'a, T: Elem, const N: usize = 64> {
     /// Array identity
     Array { v: &'a [T] },
-    /// Array identity via iterator, useful for interop with non-contiguous arrays
-    Iterator {
-        v: &'a mut dyn Iterator<Item = &'a T>,
-    },
     /// Scalar identity
     Scalar { acc: Option<Accumulator<'a, T, N>> },
     Unary {
@@ -153,29 +149,6 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     }
                     // Copy into local storage to make sure lifetimes line up and align is controlled
                     copy_from_slice_fallible(&mut self.storage.0[..m], &v[start..end])?;
-                    Some((&self.storage.0[..m], m))
-                }
-            }
-            Iterator { v } => {
-                if self.cursor >= n {
-                    None
-                } else {
-                    let end = n.min(self.cursor + nstore);
-                    let start = cursor;
-                    let m = end - start;
-                    cursor = end;
-
-                    if self.storage.0.len() < m {
-                        return Err("Size mismatch")
-                    }
-                    // Copy into local storage to make sure lifetimes line up and align is controlled
-                    for i in 0..m {
-                        let v_inner = v.next();
-                        match v_inner {
-                            Some(&x) => self.storage.0[i] = x,
-                            None => return Err("Input iterator ended early"),
-                        }
-                    }
                     Some((&self.storage.0[..m], m))
                 }
             }

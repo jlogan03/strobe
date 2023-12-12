@@ -150,7 +150,7 @@ pub use expr::{AccumulatorFn, BinaryFn, Expr, TernaryFn, UnaryFn};
 
 pub use ops::{
     abs, accumulator, acos, acosh, add, array, asin, atan, atan2, atanh, binary, constant,
-    cos, cosh, div, eq, exp, flog10, flog2, ge, gt, iterator, le, lt, mul, mul_add, ne, powf, sin,
+    cos, cosh, div, eq, exp, flog10, flog2, ge, gt, le, lt, mul, mul_add, ne, powf, sin,
     sinh, slice, sub, sum, tan, tanh, ternary, unary,
 };
 
@@ -753,24 +753,6 @@ mod test {
 
         let mut xn: Expr<'_, _, 64> = constant(5.0);
         let mut yn = y.into();
-
-        let mut xyn = mul(&mut xn, &mut yn);
-
-        let xy = xyn.eval().unwrap();
-
-        // Make sure the values match
-        (0..y.len()).for_each(|i| assert_eq!(5.0 * y[i], xy[i]));
-    }
-
-    #[test]
-    fn test_from_iterator() {
-        // Simple case with one scalar-vector multiplication
-        let mut rng = rng_fixed_seed();
-        let y = randn::<f64>(&mut rng, NT);
-        let yi = &mut y.iter();
-
-        let mut xn: Expr<'_, _, 64> = constant(5.0);
-        let mut yn = iterator(yi).unwrap();
 
         let mut xyn = mul(&mut xn, &mut yn);
 
