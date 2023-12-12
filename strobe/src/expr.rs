@@ -132,7 +132,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
     ///
     /// # Errors
     /// * On any error in a lower-level function during evaluation
-    #[cfg_attr(test, no_panic)]
+    // #[cfg_attr(test, no_panic)]
     fn next(&'a mut self) -> Result<Option<(&[T], usize)>, &'static str> {
         use Op::*;
         let n = self.len();
@@ -258,7 +258,7 @@ pub struct Accumulator<'a, T: Elem, const N: usize = 64> {
 
 impl<'a, T: Elem, const N: usize> Accumulator<'a, T, N> {
     /// Evaluate the input expression and accumulate the output values.
-    #[cfg_attr(test, no_panic)]
+    // #[cfg_attr(test, no_panic)]
     pub fn eval(&mut self) -> Result<T, &'static str> {
         let f = self.f;
         let mut v = self.start;

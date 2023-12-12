@@ -21,7 +21,7 @@
 //!
 //! (0..x.len()).for_each(|i| {assert_eq!(x[i] * x[i], xsq[i])});
 //! ```
-//! 
+//!
 //! Note `asinh` is specifically _not_ implemented here because it contains
 //! unresolvable panic branches.
 use crate::expr::{Accumulator, AccumulatorFn, BinaryFn, Expr, Op, TernaryFn, UnaryFn};
@@ -141,13 +141,12 @@ fn lt_inner<T: Elem + PartialOrd>(
     out: &mut [T],
 ) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    for i in 0..n {
+    for i in 0..out.len() {
         let res = left[i] < right[i];
         if res {
             out[i] = T::one();
@@ -174,13 +173,12 @@ fn gt_inner<T: Elem + PartialOrd>(
     out: &mut [T],
 ) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    for i in 0..n {
+    for i in 0..out.len() {
         let res = left[i] > right[i];
         if res {
             out[i] = T::one();
@@ -207,13 +205,12 @@ fn le_inner<T: Elem + PartialOrd>(
     out: &mut [T],
 ) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    for i in 0..n {
+    for i in 0..out.len() {
         let res = left[i] <= right[i];
         if res {
             out[i] = T::one();
@@ -240,13 +237,12 @@ fn ge_inner<T: Elem + PartialOrd>(
     out: &mut [T],
 ) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    for i in 0..n {
+    for i in 0..out.len() {
         let res = left[i] >= right[i];
         if res {
             out[i] = T::one();
@@ -273,13 +269,12 @@ fn eq_inner<T: Elem + PartialOrd>(
     out: &mut [T],
 ) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    for i in 0..n {
+    for i in 0..out.len() {
         let res = left[i] == right[i];
         if res {
             out[i] = T::one();
@@ -306,13 +301,12 @@ fn ne_inner<T: Elem + PartialOrd>(
     out: &mut [T],
 ) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    for i in 0..n {
+    for i in 0..out.len() {
         let res = left[i] != right[i];
         if res {
             out[i] = T::one();
@@ -335,13 +329,14 @@ pub fn ne<'a, T: Elem + PartialOrd, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn min_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i].min(right[i]));
+    for i in 0..out.len() {
+        out[i] = left[i].min(right[i]);
+    }
     Ok(())
 }
 
@@ -358,13 +353,14 @@ pub fn min<'a, T: Elem + Ord, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn max_inner<T: Elem + Ord>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i].max(right[i]));
+    for i in 0..out.len() {
+        out[i] = left[i].max(right[i])
+    }
     Ok(())
 }
 
@@ -381,13 +377,14 @@ pub fn max<'a, T: Elem + Ord, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn add_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i] + right[i]);
+    for i in 0..out.len() {
+        out[i] = left[i] + right[i]
+    }
     Ok(())
 }
 
@@ -403,13 +400,14 @@ pub fn add<'a, T: Elem, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn sub_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i] - right[i]);
+    for i in 0..out.len() {
+        out[i] = left[i] - right[i];
+    }
     Ok(())
 }
 
@@ -425,13 +423,14 @@ pub fn sub<'a, T: Elem, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn mul_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i] * right[i]);
+    for i in 0..out.len() {
+        out[i] = left[i] * right[i];
+    }
     Ok(())
 }
 
@@ -447,13 +446,14 @@ pub fn mul<'a, T: Elem, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn div_inner<T: Elem>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i] / right[i]);
+    for i in 0..out.len() {
+        out[i] = left[i] / right[i];
+    }
     Ok(())
 }
 
@@ -469,13 +469,14 @@ pub fn div<'a, T: Elem, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn fmin_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i].min(right[i]));
+    for i in 0..out.len() {
+        out[i] = left[i].min(right[i]);
+    }
     Ok(())
 }
 
@@ -492,13 +493,14 @@ pub fn fmin<'a, T: Float, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn fmax_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i].max(right[i]));
+    for i in 0..out.len() {
+        out[i] = left[i].max(right[i]);
+    }
     Ok(())
 }
 
@@ -515,13 +517,14 @@ pub fn fmax<'a, T: Float, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn powf_inner<T: Float>(left: &[T], right: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if left.len() != n || right.len() != n {
+    if left.len() != out.len() || right.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = left[i].powf(right[i]));
+    for i in 0..out.len() {
+        out[i] = left[i].powf(right[i])
+    }
     Ok(())
 }
 
@@ -537,13 +540,14 @@ pub fn powf<'a, T: Float, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn flog2_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].log2());
+    for i in 0..out.len() {
+        out[i] = x[i].log2()
+    }
     Ok(())
 }
 
@@ -556,13 +560,14 @@ pub fn flog2<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a
 #[cfg_attr(test, no_panic)]
 fn flog10_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].log10());
+    for i in 0..out.len() {
+        out[i] = x[i].log10()
+    }
     Ok(())
 }
 
@@ -575,13 +580,14 @@ pub fn flog10<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'
 #[cfg_attr(test, no_panic)]
 fn exp_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].exp());
+    for i in 0..out.len() {
+        out[i] = x[i].exp()
+    }
     Ok(())
 }
 
@@ -594,13 +600,14 @@ pub fn exp<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, 
 #[cfg_attr(test, no_panic)]
 fn atan2_inner<T: Float>(y: &[T], x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n || y.len() != n {
+    if x.len() != out.len() || y.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = y[i].atan2(x[i]));
+    for i in 0..out.len() {
+        out[i] = y[i].atan2(x[i])
+    }
     Ok(())
 }
 
@@ -620,13 +627,14 @@ pub fn atan2<'a, T: Float, const N: usize>(
 #[cfg_attr(test, no_panic)]
 fn sin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].sin());
+    for i in 0..out.len() {
+        out[i] = x[i].sin()
+    }
     Ok(())
 }
 
@@ -639,13 +647,14 @@ pub fn sin<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, 
 #[cfg_attr(test, no_panic)]
 fn tan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].tan());
+    for i in 0..out.len() {
+        out[i] = x[i].tan()
+    }
     Ok(())
 }
 
@@ -658,13 +667,14 @@ pub fn tan<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, 
 #[cfg_attr(test, no_panic)]
 fn cos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].cos());
+    for i in 0..out.len() {
+        out[i] = x[i].cos()
+    }
     Ok(())
 }
 
@@ -677,13 +687,14 @@ pub fn cos<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a, 
 #[cfg_attr(test, no_panic)]
 fn asin_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].asin());
+    for i in 0..out.len() {
+        out[i] = x[i].asin()
+    }
     Ok(())
 }
 
@@ -696,13 +707,14 @@ pub fn asin<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a,
 #[cfg_attr(test, no_panic)]
 fn acos_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].acos());
+    for i in 0..out.len() {
+        out[i] = x[i].acos()
+    }
     Ok(())
 }
 
@@ -715,13 +727,14 @@ pub fn acos<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a,
 #[cfg_attr(test, no_panic)]
 fn atan_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].atan());
+    for i in 0..out.len() {
+        out[i] = x[i].atan()
+    }
     Ok(())
 }
 
@@ -738,13 +751,14 @@ pub fn atan<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a,
 #[cfg_attr(test, no_panic)]
 fn sinh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].sinh());
+    for i in 0..out.len() {
+        out[i] = x[i].sinh()
+    }
     Ok(())
 }
 
@@ -757,13 +771,14 @@ pub fn sinh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a,
 #[cfg_attr(test, no_panic)]
 fn cosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].cosh());
+    for i in 0..out.len() {
+        out[i] = x[i].cosh()
+    }
     Ok(())
 }
 
@@ -776,13 +791,14 @@ pub fn cosh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a,
 #[cfg_attr(test, no_panic)]
 fn tanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].tanh());
+    for i in 0..out.len() {
+        out[i] = x[i].tanh()
+    }
     Ok(())
 }
 
@@ -795,13 +811,14 @@ pub fn tanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a,
 #[cfg_attr(test, no_panic)]
 fn acosh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].acosh());
+    for i in 0..out.len() {
+        out[i] = x[i].acosh()
+    }
     Ok(())
 }
 
@@ -814,13 +831,14 @@ pub fn acosh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a
 #[cfg_attr(test, no_panic)]
 fn atanh_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].atanh());
+    for i in 0..out.len() {
+        out[i] = x[i].atanh()
+    }
     Ok(())
 }
 
@@ -833,13 +851,14 @@ pub fn atanh<'a, T: Float, const N: usize>(a: &'a mut Expr<'a, T, N>) -> Expr<'a
 #[cfg_attr(test, no_panic)]
 fn abs_inner<T: Float>(x: &[T], out: &mut [T]) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if x.len() != n {
+    if x.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = x[i].abs());
+    for i in 0..out.len() {
+        out[i] = x[i].abs()
+    }
     Ok(())
 }
 
@@ -857,13 +876,14 @@ fn mul_add_inner<T: Elem + MulAdd<T, Output = T>>(
     out: &mut [T],
 ) -> Result<(), &'static str> {
     // Check sizes
-    let n = out.len();
-    if a.len() != n || b.len() != n || c.len() != n {
+    if a.len() != out.len() || b.len() != out.len() || c.len() != out.len() {
         return Err("Size mismatch");
     };
 
     // Execute
-    (0..n).for_each(|i| out[i] = a[i].mul_add(b[i], c[i]));
+    for i in 0..out.len() {
+        out[i] = a[i].mul_add(b[i], c[i])
+    }
     Ok(())
 }
 
@@ -889,7 +909,9 @@ pub fn mul_add<'a, T: Elem + MulAdd<T, Output = T>, const N: usize>(
 
 #[cfg_attr(test, no_panic)]
 fn sum_inner<T: Elem>(x: &[T], v: &mut T) -> Result<(), &'static str> {
-    (0..x.len()).for_each(|i| *v = *v + x[i]);
+    for i in 0..x.len() {
+        *v = *v + x[i]
+    }
     Ok(())
 }
 
