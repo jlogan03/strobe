@@ -145,9 +145,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     let start = cursor;
                     let m = end.saturating_sub(start);
                     cursor = end;
-                    if self.storage.0.len() < m || v.len() < end || start > end {
-                        return Err("Size mismatch");
-                    }
+
                     // Copy into local storage to make sure lifetimes line up and align is controlled
                     let vslice = get_from_slice_fallible(&v, start..end)?;
                     copy_from_slice_fallible(&mut self.storage.0, vslice)?;
@@ -207,7 +205,7 @@ impl<'a, T: Elem, const N: usize> Expr<'_, T, N> {
                     f(&x[..m], &y[..m], &z[..m], &mut self.storage.0[..m])?;
                     Some((&self.storage.0[..m], m))
                 }
-                // _ => None,
+                _ => None,
             },
         };
 
@@ -234,7 +232,7 @@ pub struct Accumulator<'a, T: Elem, const N: usize = 64> {
 
 impl<'a, T: Elem, const N: usize> Accumulator<'a, T, N> {
     /// Evaluate the input expression and accumulate the output values.
-    // #[cfg_attr(test, no_panic)]
+    #[cfg_attr(test, no_panic)]
     pub fn eval(&mut self) -> Result<T, &'static str> {
         let f = self.f;
         let mut v = self.start;
